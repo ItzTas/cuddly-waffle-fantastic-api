@@ -18,24 +18,50 @@ function User(id, real_name, user_name, email, created_at, updated_at) {
 
 /**
  *
- * @param {Object} dbUser
+ * @param {String} id
+ * @param {String} real_name
+ * @param {String} user_name
+ * @param {String} email
+ * @param {String} password
+ * @param {String} salt
+ * @param {EpochTimeStamp} created_at
+ * @param {EpochTimeStamp} updated_at
+ */
+function DatabaseUser(
+  id,
+  real_name,
+  user_name,
+  email,
+  password,
+  salt,
+  created_at,
+  updated_at
+) {
+  this.id = id;
+  this.real_name = real_name;
+  this.user_name = user_name;
+  this.email = email;
+  this.password = password;
+  this.salt = salt;
+  this.created_at = created_at;
+  this.updated_at = updated_at;
+}
+
+/**
+ *
+ * @param {DatabaseUser} dbUser
  * @returns {User}
  */
+// database user to user hides secure user informations
 function databaseUserToUser(dbUser) {
   return new User(
-    // @ts-ignore
     dbUser.id,
-    // @ts-ignore
     dbUser.real_name,
-    // @ts-ignore
     dbUser.user_name,
-    // @ts-ignore
     dbUser.email,
-    // @ts-ignore
     dbUser.created_at,
-    // @ts-ignore
     dbUser.updated_at
   );
 }
 
-export { databaseUserToUser };
+export { databaseUserToUser, User, DatabaseUser };
