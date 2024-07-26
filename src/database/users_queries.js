@@ -35,8 +35,8 @@ const createUserQuery = `
  * @param {String} password
  */
 async function createDatabaseUser(real_name, user_name, email, password) {
-  if (!password) {
-    throw new Error("password not provided!");
+  if (!email || !user_name || !real_name || !password) {
+    throw new Error("Unfulfilled params");
   }
   const id = uuidv4();
 
