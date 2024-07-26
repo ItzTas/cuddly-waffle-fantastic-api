@@ -258,7 +258,7 @@ describe("Get user by id", () => {
 
     for (const test of tests) {
       const { input } = test;
-      const dbuser = await createDatabaseUser(
+      const { id } = await createDatabaseUser(
         input.real_name,
         input.user_name,
         input.email,
@@ -267,9 +267,9 @@ describe("Get user by id", () => {
       const { expected } = test;
 
       try {
-        const user = await getUserById(dbuser.id);
+        const user = await getUserById(id);
 
-        expect(user.id).toBe(dbuser.id);
+        expect(user.id).toBe(id);
         expect(user.real_name).toBe(expected.real_name);
         expect(user.user_name).toBe(expected.user_name);
         expect(user.email).toBe(expected.email);
