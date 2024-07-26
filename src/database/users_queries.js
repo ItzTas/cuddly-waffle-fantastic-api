@@ -1,8 +1,9 @@
-import moment from "moment";
 import { pool } from "./database_client.js";
 import { v4 as uuidv4, validate } from "uuid";
 import { hashPassword } from "../auth/auth.js";
-import { DatabaseUser } from "../models/app_users.js";
+import { DatabaseUser } from "../models/users.js";
+import moment from "moment";
+import { getNowUTC } from "../../helpers/helpers.js";
 
 class ErrorAlreadyExists extends Error {
   /**
@@ -80,8 +81,6 @@ async function createDatabaseUser(real_name, user_name, email, password) {
   }
   const id = uuidv4();
 
-  const now = moment().utc().format();
-
   //@ts-ignore
   const { hashedPassword, salt } = await hashPassword(password);
 
@@ -94,8 +93,8 @@ async function createDatabaseUser(real_name, user_name, email, password) {
       email,
       hashedPassword,
       salt,
-      now,
-      now,
+      getNowUTC(),
+      getNowUTC(),
     ]);
   } catch (/** @type {any} */ err) {
     if (err?.code === "23505") {
@@ -134,6 +133,84 @@ async function getUserById(id) {
   return results.rows[0];
 }
 
+const QueryUpdateUserById = `
+  UPDATE users
+  SET real_name = $1, user_name = $2, email = $3, password = $4, salt = $5, updated_at = $6
+  WHERE id = $7
+  RETURNING *;
+`;
+
+/**
+ * @readonly -- if any paramether is not specified then it defaults to the user old paramether
+ * @async
+ * @param {string} id
+ * @param {string} newRealName
+ * @param {string} newUserName
+ * @param {string} newEmail
+ * @param {string} newPassword
+ * @param {boolean | null} tohash -- if the password is updated it is altomatically set as true, set it true ONLY if the password is updated
+ * @returns {Promise<DatabaseUser>}
+ * @throws {InvalidUUID}
+ * @throws {ErrorNotFound}
+ * @throws {Error}
+ */
+async function updateUserById(
+  id,
+  newRealName = "",
+  newUserName = "",
+  newEmail = "",
+  newPassword = "",
+  tohash = null
+) {
+  if (!validate(id)) {
+    throw new InvalidUUID("Invalid uuid format");
+  }
+  if (tohash === null) {
+    tohash = newPassword !== "";
+  }
+
+  let pass;
+  let salted;
+  if (tohash) {
+    const { hashedPassword, salt } = await hashPassword(newPassword);
+    pass = hashedPassword;
+    salted = salt;
+  } else {
+    const { password, salt } = await getUserById(id);
+    pass = password;
+    salted = salt;
+  }
+
+  if (newRealName === "") {
+    const { real_name } = await getUserById(id);
+    newRealName = real_name;
+  }
+  if (newUserName === "") {
+    const { user_name } = await getUserById(id);
+    newUserName = user_name;
+  }
+  if (newEmail === "") {
+    const { email } = await getUserById(id);
+    newEmail = email;
+  }
+
+  const dbuser = await pool.query(QueryUpdateUserById, [
+    newRealName,
+    newUserName,
+    newEmail,
+    pass,
+    salted,
+    getNowUTC(),
+    id,
+  ]);
+
+  if (dbuser.rows.length === 0) {
+    throw new ErrorNotFound("user with given id not found");
+  }
+
+  return dbuser.rows[0];
+}
+
 export {
   truncateUsersTable,
   createDatabaseUser,
@@ -142,4 +219,5 @@ export {
   InvalidUUID,
   getUserById,
   ErrorNotFound,
+  updateUserById,
 };
