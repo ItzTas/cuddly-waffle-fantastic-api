@@ -2,6 +2,7 @@ import { compareHashFromPassword } from "../../auth/auth.js";
 import { pool } from "../../database/database_client.js";
 import {
   createDatabaseUser,
+  ErrorAlreadyExists,
   truncateUsersTable,
 } from "../../database/users_queries.js";
 //@ts-ignore
@@ -130,6 +131,24 @@ describe("Create database user", () => {
           password: "123456789asdsdf",
         },
       },
+      {
+        name: "No email",
+        input: {
+          real_name: "Happy face",
+          user_name: "I am happy !",
+          email: "",
+          password: "aosdmjiosdngi",
+        },
+      },
+      {
+        name: "no real name",
+        input: {
+          real_name: "",
+          user_name: "No Name",
+          email: "test@dason",
+          password: "asiodnjasd",
+        },
+      },
     ];
 
     for (const test of tests) {
@@ -152,6 +171,46 @@ describe("Create database user", () => {
             //@ts-ignore
           )}\n ${err?.message}`
         );
+      }
+    }
+  });
+
+  it("User already exists especific error", async () => {
+    const tests = [
+      {
+        real_name: "Pablo",
+        user_name: "pablo_foda",
+        email: "pablo@foda",
+        password: "sodinfs9irec0i",
+      },
+      {
+        real_name: "Gabriel machado",
+        user_name: "Gabriel o batman",
+        email: "gabriel@batman",
+        password: "9012u890ji9",
+      },
+    ];
+
+    for (const test of tests) {
+      const { real_name, user_name, email, password } = test;
+
+      await createDatabaseUser(real_name, user_name, email, password);
+
+      try {
+        await createDatabaseUser(real_name, user_name, email, password);
+      } catch (err) {
+        if (err instanceof ErrorAlreadyExists) {
+          expect(err).toBeInstanceOf(ErrorAlreadyExists);
+        } else {
+          throw new Error(
+            `Unexpected error for user: ${JSON.stringify(
+              test,
+              null,
+              2
+              //@ts-ignore
+            )}. Error: ${err?.message}`
+          );
+        }
       }
     }
   });
