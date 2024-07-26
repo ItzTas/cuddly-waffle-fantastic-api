@@ -242,8 +242,8 @@ describe("post /api/users/accounts", () => {
     ];
 
     for (const test of tests) {
-      const { real_name, user_name, email, password } = test;
-      await createDatabaseUser(real_name, user_name, email, password);
+      await supertest(app).post(path).send(test);
+      await supertest(app).post(path).send(test);
 
       await supertest(app)
         .post(path)
@@ -440,6 +440,649 @@ describe("get /api/users/:id/id", () => {
               body: \n${formatObject(body)}\n
               error: \n${err}\n
               `);
+          }
+        });
+    }
+  });
+});
+
+describe("patch /api/users/:id/id", () => {
+  beforeAll(async () => {
+    await truncateUsersTable();
+  });
+
+  /**
+   *
+   * @param {string} id
+   * @returns {string}
+   */
+  function getPath(id) {
+    return `/api/users/${id}/id`;
+  }
+
+  it(`check equallity and security in informations`, async () => {
+    const tests = [
+      {
+        input: {
+          new_real_name: "talitoss",
+          new_user_name: "itztaslis",
+          new_email: "tal@emil",
+          new_password: "as9dhn98",
+        },
+        expected: {
+          real_name: "talitos",
+          user_name: "itztasli",
+          email: "tal@emi",
+          password: "as9dhn9",
+        },
+      },
+      {
+        input: {
+          new_real_name: "joaodoe",
+          new_user_name: "joaouser",
+          new_email: "joao@doe.com",
+          new_password: "joaopass123",
+        },
+        expected: {
+          real_name: "joaodo",
+          user_name: "joaouse",
+          email: "joao@doe.co",
+          password: "joaopass12",
+        },
+      },
+      {
+        input: {
+          new_real_name: "mariasmith",
+          new_user_name: "maria123",
+          new_email: "maria@smith.com",
+          new_password: "mariasecure",
+        },
+        expected: {
+          real_name: "mariasmit",
+          user_name: "maria12",
+          email: "maria@smith.co",
+          password: "mariasecur",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      const { new_real_name, new_user_name, new_email, new_password } =
+        test.input;
+      const { expected } = test;
+
+      const { id } = await createDatabaseUser(
+        new_real_name,
+        new_user_name,
+        new_email,
+        new_password
+      );
+
+      const sent_body = {
+        new_real_name: new_real_name.slice(0, -1),
+        new_user_name: new_user_name.slice(0, -1),
+        new_email: new_email.slice(0, -1),
+        new_password: new_password.slice(0, -1),
+      };
+
+      const path = getPath(id);
+      await supertest(app)
+        .patch(path)
+        .send(sent_body)
+        .expect((res) => {
+          const { body, status } = res;
+          try {
+            expect(status).toBe(StatusCodes.OK);
+
+            expect(body.real_name).toBe(expected.real_name);
+            expect(body.user_name).toBe(expected.user_name);
+            expect(body.email).toBe(expected.email);
+
+            expect(body).toHaveProperty("created_at");
+            expect(body).toHaveProperty("updated_at");
+            expect(body).toHaveProperty("id");
+
+            expect(body).not.toHaveProperty("password");
+            expect(body).not.toHaveProperty("salt");
+          } catch (err) {
+            throw new Error(`
+              expected result did not happen 
+              \n test infos: \n${formatObject(test)}\n
+              \n body: \n${formatObject(body)}\n
+              \n error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("check id validation", async () => {
+    const tests = [
+      "not valid",
+      "this is not a valid id",
+      "sioadn902h98ns8ndca90bd89abd",
+    ];
+
+    for (const id of tests) {
+      const path = getPath(id);
+
+      await supertest(app)
+        .patch(path)
+        .send({})
+        .expect((res) => {
+          const { status, body } = res;
+          try {
+            expect(status).toBe(StatusCodes.BAD_REQUEST);
+
+            expect(body).toHaveProperty("sent_id");
+            expect(body.sent_id).toBe(id);
+          } catch (err) {
+            throw new Error(`
+              expected error did not happen with id: ${id}
+              \n body: \n${body}\n
+              \n error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("expected error user not found", async () => {
+    for (let _ = 1; _ <= 10; _++) {
+      const id = uuidv4();
+      const path = getPath(id);
+
+      await supertest(app)
+        .patch(path)
+        .expect((res) => {
+          const { status, body } = res;
+          try {
+            expect(status).toBe(StatusCodes.NOT_FOUND);
+
+            expect(body).toHaveProperty("error");
+            expect(body.error).toBe("given user not found");
+          } catch (err) {
+            throw new Error(`
+              Expected error did not happen with id: ${id}
+              \n body: \n${body}\n
+              \n error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("password parcial update", async () => {
+    const tests = [
+      {
+        input: {
+          real_name: "Ruan",
+          user_name: "ruan_AAA",
+          email: "ruan@AAA",
+          password: "as9dn90",
+          new_password: "as9dn9",
+        },
+        expected: {
+          real_name: "Ruan",
+          user_name: "ruan_AAA",
+          email: "ruan@AAA",
+        },
+      },
+      {
+        input: {
+          real_name: "Tales",
+          user_name: "Taleszito",
+          email: "tales@site.com",
+          password: "strongpassword123",
+          new_password: "strongpassword12",
+        },
+        expected: {
+          real_name: "Tales",
+          user_name: "Taleszito",
+          email: "tales@site.com",
+        },
+      },
+      {
+        input: {
+          real_name: "Ana Maria",
+          user_name: "ana_maria123",
+          email: "ana@maria.com",
+          password: "password456",
+          new_password: "password45",
+        },
+        expected: {
+          real_name: "Ana Maria",
+          user_name: "ana_maria123",
+          email: "ana@maria.com",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      const { input, expected } = test;
+      const { id } = await createDatabaseUser(
+        input.real_name,
+        input.user_name,
+        input.email,
+        input.password
+      );
+      const path = getPath(id);
+
+      const toSend = { new_password: input.new_password };
+
+      await supertest(app)
+        .patch(path)
+        .send(toSend)
+        .expect((res) => {
+          const { status, body } = res;
+          try {
+            expect(body.real_name).toBe(expected.real_name);
+            expect(body.user_name).toBe(expected.user_name);
+            expect(body.email).toBe(expected.email);
+
+            expect(status).toBe(StatusCodes.OK);
+
+            expect(body).toHaveProperty("created_at");
+            expect(body).toHaveProperty("updated_at");
+            expect(body).toHaveProperty("id");
+
+            expect(body).not.toHaveProperty("password");
+            expect(body).not.toHaveProperty("salt");
+          } catch (err) {
+            throw new Error(`
+            expected result did not happen 
+            \n test infos: \n${formatObject(test)}\n
+            \n body: \n${formatObject(body)}\n
+            \n error: \n${err}\n
+          `);
+          }
+        });
+    }
+  });
+
+  it("email partial update", async () => {
+    await truncateUsersTable();
+    const tests = [
+      {
+        input: {
+          real_name: "Ruana",
+          user_name: "ruan_AAAa",
+          email: "ruan@AAAa",
+          password: "as9dn90",
+          new_email: "ruan@BBB",
+        },
+        expected: {
+          real_name: "Ruana",
+          user_name: "ruan_AAAa",
+          email: "ruan@BBB",
+          password: "as9dn90",
+        },
+      },
+      {
+        input: {
+          real_name: "Talesa",
+          user_name: "Taleszitoa",
+          email: "tales@site.com",
+          password: "strongpassword123",
+          new_email: "tales@newsite.com",
+        },
+        expected: {
+          real_name: "Talesa",
+          user_name: "Taleszitoa",
+          email: "tales@newsite.com",
+          password: "strongpassword123",
+        },
+      },
+      {
+        input: {
+          real_name: "Ana Mariaa",
+          user_name: "ana_maria123",
+          email: "ana@maaria.com",
+          password: "password456",
+          new_email: "ana@newmaria.com",
+        },
+        expected: {
+          real_name: "Ana Mariaa",
+          user_name: "ana_maria123",
+          email: "ana@newmaria.com",
+          password: "password456",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      const { input, expected } = test;
+      const { id } = await createDatabaseUser(
+        input.real_name,
+        input.user_name,
+        input.email,
+        input.password
+      );
+      const path = getPath(id);
+
+      const toSend = { new_email: input.new_email };
+
+      await supertest(app)
+        .patch(path)
+        .send(toSend)
+        .expect((res) => {
+          const { status, body } = res;
+          try {
+            expect(body.real_name).toBe(expected.real_name);
+            expect(body.user_name).toBe(expected.user_name);
+            expect(body.email).toBe(expected.email);
+
+            expect(status).toBe(StatusCodes.OK);
+
+            expect(body).toHaveProperty("created_at");
+            expect(body).toHaveProperty("updated_at");
+            expect(body).toHaveProperty("id");
+
+            expect(body).not.toHaveProperty("password");
+            expect(body).not.toHaveProperty("salt");
+          } catch (err) {
+            throw new Error(`
+            expected result did not happen 
+            \n test infos: \n${formatObject(test)}\n
+            \n body: \n${formatObject(body)}\n
+            \n error: \n${err}\n
+          `);
+          }
+        });
+    }
+  });
+
+  it("real_name partial update", async () => {
+    await truncateUsersTable();
+    const tests = [
+      {
+        input: {
+          real_name: "Ruana",
+          user_name: "ruan_AAAa",
+          email: "ruan@AAAa",
+          password: "as9dn90",
+          new_real_name: "Ruana Updated",
+        },
+        expected: {
+          real_name: "Ruana Updated",
+          user_name: "ruan_AAAa",
+          email: "ruan@AAAa",
+          password: "as9dn90",
+        },
+      },
+      {
+        input: {
+          real_name: "Talesa",
+          user_name: "Taleszitoa",
+          email: "tales@site.com",
+          password: "strongpassword123",
+          new_real_name: "Talesa Updated",
+        },
+        expected: {
+          real_name: "Talesa Updated",
+          user_name: "Taleszitoa",
+          email: "tales@site.com",
+          password: "strongpassword123",
+        },
+      },
+      {
+        input: {
+          real_name: "Ana Mariaa",
+          user_name: "ana_maria123",
+          email: "ana@maaria.com",
+          password: "password456",
+          new_real_name: "Ana Mariaa Updated",
+        },
+        expected: {
+          real_name: "Ana Mariaa Updated",
+          user_name: "ana_maria123",
+          email: "ana@maaria.com",
+          password: "password456",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      const { input, expected } = test;
+      const { id } = await createDatabaseUser(
+        input.real_name,
+        input.user_name,
+        input.email,
+        input.password
+      );
+      const path = getPath(id);
+
+      const toSend = { new_real_name: input.new_real_name };
+
+      await supertest(app)
+        .patch(path)
+        .send(toSend)
+        .expect((res) => {
+          const { status, body } = res;
+          try {
+            expect(body.real_name).toBe(expected.real_name);
+            expect(body.user_name).toBe(expected.user_name);
+            expect(body.email).toBe(expected.email);
+
+            expect(status).toBe(StatusCodes.OK);
+
+            expect(body).toHaveProperty("created_at");
+            expect(body).toHaveProperty("updated_at");
+            expect(body).toHaveProperty("id");
+
+            expect(body).not.toHaveProperty("password");
+            expect(body).not.toHaveProperty("salt");
+          } catch (err) {
+            throw new Error(`
+            expected result did not happen 
+            \n test infos: \n${formatObject(test)}\n
+            \n body: \n${formatObject(body)}\n
+            \n error: \n${err}\n
+          `);
+          }
+        });
+    }
+  });
+
+  it("user_name partial update", async () => {
+    await truncateUsersTable();
+    const tests = [
+      {
+        input: {
+          real_name: "Ruana",
+          user_name: "ruan_AAAa",
+          email: "ruan@AAAa",
+          password: "as9dn90",
+          new_user_name: "ruan_AAAa_updated",
+        },
+        expected: {
+          real_name: "Ruana",
+          user_name: "ruan_AAAa_updated",
+          email: "ruan@AAAa",
+          password: "as9dn90",
+        },
+      },
+      {
+        input: {
+          real_name: "Talesa",
+          user_name: "Taleszitoa",
+          email: "tales@site.com",
+          password: "strongpassword123",
+          new_user_name: "Taleszitoa_updated",
+        },
+        expected: {
+          real_name: "Talesa",
+          user_name: "Taleszitoa_updated",
+          email: "tales@site.com",
+          password: "strongpassword123",
+        },
+      },
+      {
+        input: {
+          real_name: "Ana Mariaa",
+          user_name: "ana_maria123",
+          email: "ana@maaria.com",
+          password: "password456",
+          new_user_name: "ana_maria123_updated",
+        },
+        expected: {
+          real_name: "Ana Mariaa",
+          user_name: "ana_maria123_updated",
+          email: "ana@maaria.com",
+          password: "password456",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      const { input, expected } = test;
+      const { id } = await createDatabaseUser(
+        input.real_name,
+        input.user_name,
+        input.email,
+        input.password
+      );
+      const path = getPath(id);
+
+      const toSend = { new_user_name: input.new_user_name };
+
+      await supertest(app)
+        .patch(path)
+        .send(toSend)
+        .expect((res) => {
+          const { status, body } = res;
+          try {
+            expect(body.real_name).toBe(expected.real_name);
+            expect(body.user_name).toBe(expected.user_name);
+            expect(body.email).toBe(expected.email);
+
+            expect(status).toBe(StatusCodes.OK);
+
+            expect(body).toHaveProperty("created_at");
+            expect(body).toHaveProperty("updated_at");
+            expect(body).toHaveProperty("id");
+
+            expect(body).not.toHaveProperty("password");
+            expect(body).not.toHaveProperty("salt");
+          } catch (err) {
+            throw new Error(`
+            expected result did not happen 
+            \n test infos: \n${formatObject(test)}\n
+            \n body: \n${formatObject(body)}\n
+            \n error: \n${err}\n
+          `);
+          }
+        });
+    }
+  });
+
+  it("should return BAD_REQUEST when user with updated infos already exists", async () => {
+    await truncateUsersTable();
+
+    const tests = [
+      {
+        baseUser: {
+          real_name: "BaseUser",
+          user_name: "baseUser",
+          email: "base@user.com",
+          password: "password123",
+        },
+        conflictingUser: {
+          real_name: "BaseUser Updated",
+          user_name: "baseUserUpdated",
+          email: "base@updated.com",
+          password: "newpassword123",
+        },
+        conflictingUpdate: {
+          new_real_name: "BaseUser Updated",
+          new_user_name: "baseUserUpdated",
+          new_email: "base@updated.com",
+          new_password: "anotherpassword123",
+        },
+      },
+      {
+        baseUser: {
+          real_name: "ConflictingUser",
+          user_name: "conflictingUser",
+          email: "conflicting@user.com",
+          password: "password123",
+        },
+        conflictingUser: {
+          real_name: "ConflictingUser Updated",
+          user_name: "conflictingUserUpdated",
+          email: "conflicting@updated.com",
+          password: "differentpassword123",
+        },
+        conflictingUpdate: {
+          new_real_name: "ConflictingUser Updated",
+          new_user_name: "conflictingUserUpdated",
+          new_email: "conflicting@updated.com",
+          new_password: "yetanotherpassword123",
+        },
+      },
+      {
+        baseUser: {
+          real_name: "UserA",
+          user_name: "userA",
+          email: "userA@domain.com",
+          password: "passA123",
+        },
+        conflictingUser: {
+          real_name: "UserA Updated",
+          user_name: "userAUpdated",
+          email: "userA@domain.org",
+          password: "passA123",
+        },
+        conflictingUpdate: {
+          new_real_name: "UserA Updated",
+          new_user_name: "userAUpdated",
+          new_email: "userA@domain.org",
+          new_password: "differentpassA123",
+        },
+      },
+    ];
+
+    for (const { baseUser, conflictingUser, conflictingUpdate } of tests) {
+      const { id } = await createDatabaseUser(
+        baseUser.real_name,
+        baseUser.user_name,
+        baseUser.email,
+        baseUser.password
+      );
+
+      await createDatabaseUser(
+        conflictingUser.real_name,
+        conflictingUser.user_name,
+        conflictingUser.email,
+        conflictingUser.password
+      );
+
+      const path = getPath(id);
+
+      await supertest(app)
+        .patch(path)
+        .send(conflictingUpdate)
+        .expect((res) => {
+          const { body, status } = res;
+          try {
+            expect(body).toEqual({
+              error: "user with updated infos already exists",
+            });
+
+            expect(body).toHaveProperty("error");
+
+            expect(status).toBe(StatusCodes.BAD_REQUEST);
+          } catch (err) {
+            throw new Error(`
+            expected result did not happen 
+            \n test: \n${formatObject({
+              baseUser,
+              conflictingUser,
+              conflictingUpdate,
+            })}\n
+            \n body: \n${formatObject(body)}\n
+            \n error: \n${err}\n
+          `);
           }
         });
     }
