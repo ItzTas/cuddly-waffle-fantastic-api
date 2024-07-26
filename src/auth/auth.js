@@ -15,7 +15,7 @@ const PEPPER = process.env["PEPPER"];
 async function hashPassword(password) {
   const saltRounds = 10;
   const salt = generateSalt(16);
-  const pass = password + PEPPER + salt;
+  const pass = salt + password + PEPPER;
   const hashedPassword = await bcrypt.hash(pass, saltRounds);
   return { hashedPassword, salt };
 }
@@ -27,7 +27,7 @@ async function hashPassword(password) {
  * @param {String} hash
  */
 async function compareHashFromPassword(password, salt, hash) {
-  const pass = password + PEPPER + salt;
+  const pass = salt + password + PEPPER;
   return await bcrypt.compare(pass, hash);
 }
 

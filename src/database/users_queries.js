@@ -68,4 +68,4 @@ async function createDatabaseUser(real_name, user_name, email, password) {
   return results.rows[0];
 }
 
-export { truncateUsersTable, createDatabaseUser };
+export { truncateUsersTable, createDatabaseUser, ErrorAlreadyExists };
