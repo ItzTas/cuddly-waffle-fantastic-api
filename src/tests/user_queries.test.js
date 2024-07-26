@@ -122,12 +122,12 @@ describe("Create database user", () => {
         },
       },
       {
-        name: "User already exists",
+        name: "No user name",
         input: {
-          real_name: "Tales",
-          user_name: "ItzTas",
-          email: "example@",
-          password: "123",
+          real_name: "Walter white",
+          user_name: "",
+          email: "t@xiaomi",
+          password: "123456789asdsdf",
         },
       },
     ];
