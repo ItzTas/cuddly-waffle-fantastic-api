@@ -1,5 +1,8 @@
 import supertest from "supertest";
-import { truncateUsersTable } from "../../database/users_queries.js";
+import {
+  createDatabaseUser,
+  truncateUsersTable,
+} from "../../database/users_queries.js";
 import { pool } from "../../database/database_client.js";
 import app from "../../main.js";
 import { StatusCodes } from "http-status-codes";
@@ -14,7 +17,7 @@ describe("post /users/accounts", () => {
     await pool.end();
   });
 
-  const path = "/users/accounts";
+  const path = "/api/users/accounts";
 
   it(`Code ${StatusCodes.CREATED} (created) expected`, async () => {
     const tests = [
@@ -146,9 +149,8 @@ describe("post /users/accounts", () => {
             expect(body).not.toHaveProperty("salt");
           } catch (/** @type {any} */ err) {
             throw new Error(`
-              test failed with infos: \n${formatObject(
-                test
-              )} \n body: \n${formatObject(body)}\n
+              test failed with infos: \n${formatObject(test)} \n 
+              body: \n${formatObject(body)}\n
               \n error: \n${err}\n
               `);
           }
@@ -211,17 +213,60 @@ describe("post /users/accounts", () => {
         .post(path)
         .send(test.body)
         .expect((res) => {
+          const { body } = res;
           try {
             expect(res.status).toBeGreaterThanOrEqual(400);
             expect(res.status).toBeLessThan(500);
 
-            expect(res.body).toHaveProperty("error");
+            if (body.error_code) {
+              expect(body.error_code).toBe("23514");
+            }
+
+            expect(body).toHaveProperty("error");
           } catch (/** @type {any} */ err) {
             throw new Error(`
               expected error ${name} did not happen\n test infos: \n${formatObject(
               test
-            )} \n body: \n${formatObject(res.body)}\n 
+            )} \n body: \n${formatObject(body)}\n 
             \n error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("Ensure error user already exists", async () => {
+    const tests = [
+      {
+        real_name: "Talzos",
+        user_name: "Talzositosss",
+        email: "t@asion",
+        password: "9shnd80bn",
+      },
+    ];
+
+    for (const test of tests) {
+      const { real_name, user_name, email, password } = test;
+      await createDatabaseUser(real_name, user_name, email, password);
+
+      await supertest(app)
+        .post(path)
+        .send(test)
+        .expect((res) => {
+          const { body } = res;
+          try {
+            expect(res.status).toBeGreaterThanOrEqual(400);
+            expect(res.status).toBeLessThan(500);
+            expect(body).toHaveProperty("error");
+
+            expect(body.error_code).toBe("23505");
+
+            expect(body.error).toBe("Given user already exists");
+          } catch (err) {
+            throw new Error(`
+              expected error did not happen\n test: \n${formatObject(test)}\n
+              body: \n${formatObject(body)}\n
+              error: \n${err}\n
               `);
           }
         });
