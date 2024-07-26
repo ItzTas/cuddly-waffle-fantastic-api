@@ -7,6 +7,7 @@ import {
   getUserById,
   InvalidUUID,
   truncateUsersTable,
+  updateAllUsersInfosById,
 } from "../../database/users_queries.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -327,6 +328,125 @@ describe("Get user by id", () => {
         throw new Error(
           `expected error did not happen with uuid: \n${id}\n error: ${err}`
         );
+      }
+    }
+  });
+});
+
+describe("Update all users infos by id", () => {
+  beforeAll(async () => {
+    await truncateUsersTable();
+  });
+
+  it("assert equality with updated users", async () => {
+    const tests = [
+      {
+        input: {
+          real_name: "Tales",
+          user_name: "ItzTas",
+          email: "example@as",
+          password: "123",
+        },
+        expected: {
+          real_name: "Tale",
+          user_name: "ItzTa",
+          email: "example@a",
+          password: "12",
+        },
+      },
+      {
+        input: {
+          real_name: "User!@#",
+          user_name: "user!@#",
+          email: "user!@#@domain.com",
+          password: "password123",
+        },
+        expected: {
+          real_name: "User!@",
+          user_name: "user!@",
+          email: "user!@#@domain.co",
+          password: "password12",
+        },
+      },
+      {
+        input: {
+          real_name: "Encrypt Test",
+          user_name: "encrypittest",
+          email: "encrypt@domain.com",
+          password: "securepassword",
+        },
+        expected: {
+          real_name: "Encrypt Tes",
+          user_name: "encrypittes",
+          email: "encrypt@domain.co",
+          password: "securepasswor",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      const { input, expected } = test;
+
+      const { id } = await createDatabaseUser(
+        input.real_name,
+        input.user_name,
+        input.email,
+        input.password
+      );
+
+      const user = await updateAllUsersInfosById(
+        id,
+        input.real_name.slice(0, -1),
+        input.user_name.slice(0, -1),
+        input.email.slice(0, -1),
+        input.password.slice(0, -1)
+      );
+
+      try {
+        expect(user.real_name).toBe(expected.real_name);
+        expect(user.user_name).toBe(expected.user_name);
+        expect(user.email).toBe(expected.email);
+
+        expect(user).toHaveProperty("id");
+        expect(user).toHaveProperty("created_at");
+        expect(user).toHaveProperty("updated_at");
+        expect(user).toHaveProperty("salt");
+
+        expect(user.password).not.toBe(expected.password);
+
+        const resultCompPassword = await compareHashFromPassword(
+          expected.password,
+          user.salt,
+          user.password
+        );
+
+        expect(resultCompPassword).toBe(true);
+      } catch (err) {
+        throw new Error(`
+          informations did not match 
+          \n test: \n${formatObject(test)}\n
+          \n user: \n${formatObject(user)}\n
+          \n error: \n${err}\n
+          `);
+      }
+    }
+  });
+
+  it("check uuid validation", async () => {
+    const tests = [
+      "not valid",
+      "this is not an valid id",
+      "sioadn902h98ns8ndca90bd89abd",
+    ];
+
+    for (const id of tests) {
+      try {
+        await expect(updateAllUsersInfosById(id)).rejects.toThrow(InvalidUUID);
+      } catch (err) {
+        throw new Error(`
+          expected error did not happend with id: ${id}
+          \n error: ${err}
+          `);
       }
     }
   });
