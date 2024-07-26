@@ -2,7 +2,6 @@ import { pool } from "./database_client.js";
 import { v4 as uuidv4, validate } from "uuid";
 import { hashPassword } from "../auth/auth.js";
 import { DatabaseUser } from "../models/users.js";
-import moment from "moment";
 import { getNowUTC } from "../../helpers/helpers.js";
 
 class ErrorAlreadyExists extends Error {
@@ -133,7 +132,7 @@ async function getUserById(id) {
   return results.rows[0];
 }
 
-const QueryUpdateUserById = `
+const QueryUpdateAllUserInfosById = `
   UPDATE users
   SET real_name = $1, user_name = $2, email = $3, password = $4, salt = $5, updated_at = $6
   WHERE id = $7
@@ -144,22 +143,24 @@ const QueryUpdateUserById = `
  * @readonly -- if any paramether is not specified then it defaults to the user old paramether
  * @async
  * @param {string} id
- * @param {string} newRealName
- * @param {string} newUserName
- * @param {string} newEmail
- * @param {string} newPassword
+ * @param {string} [newRealName=""]
+ * @param {string} [newUserName=""]
+ * @param {string} [newEmail=""]
+ * @param {string} [newPassword=""]
+ * @param {string} [salt=""]
  * @param {boolean | null} tohash -- if the password is updated it is altomatically set as true, set it true ONLY if the password is updated
  * @returns {Promise<DatabaseUser>}
  * @throws {InvalidUUID}
  * @throws {ErrorNotFound}
  * @throws {Error}
  */
-async function updateUserById(
+async function updateAllUsersInfosById(
   id,
   newRealName = "",
   newUserName = "",
   newEmail = "",
   newPassword = "",
+  salt = "",
   tohash = null
 ) {
   if (!validate(id)) {
@@ -169,15 +170,11 @@ async function updateUserById(
     tohash = newPassword !== "";
   }
 
-  let pass;
-  let salted;
+  let pass = newPassword;
+  let salted = salt;
   if (tohash) {
     const { hashedPassword, salt } = await hashPassword(newPassword);
     pass = hashedPassword;
-    salted = salt;
-  } else {
-    const { password, salt } = await getUserById(id);
-    pass = password;
     salted = salt;
   }
 
@@ -194,18 +191,29 @@ async function updateUserById(
     newEmail = email;
   }
 
-  const dbuser = await pool.query(QueryUpdateUserById, [
-    newRealName,
-    newUserName,
-    newEmail,
-    pass,
-    salted,
-    getNowUTC(),
-    id,
-  ]);
+  let dbuser;
+  try {
+    dbuser = await pool.query(QueryUpdateAllUserInfosById, [
+      newRealName,
+      newUserName,
+      newEmail,
+      pass,
+      salted,
+      getNowUTC(),
+      id,
+    ]);
+  } catch (/**@type {any} */ err) {
+    if (err?.code === "23505") {
+      throw new ErrorAlreadyExists(
+        "user with given informations already exists",
+        err.code
+      );
+    }
+    throw err;
+  }
 
   if (dbuser.rows.length === 0) {
-    throw new ErrorNotFound("user with given id not found");
+    throw new ErrorNotFound("User not found or no information was updated");
   }
 
   return dbuser.rows[0];
@@ -219,5 +227,5 @@ export {
   InvalidUUID,
   getUserById,
   ErrorNotFound,
-  updateUserById,
+  updateAllUsersInfosById,
 };
