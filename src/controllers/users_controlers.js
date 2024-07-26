@@ -10,8 +10,9 @@ import {
   ErrorNotFound,
   getUserById,
   InvalidEmailFormat,
+  updateAllUsersInfosById,
 } from "../database/users_queries.js";
-import { databaseUserToUser } from "../models/app_users.js";
+import { databaseUserToUser } from "../models/users.js";
 import { validate } from "uuid";
 
 /**
@@ -89,4 +90,77 @@ async function handlerGetUserById(req, res) {
   return res.status(StatusCodes.OK).json(databaseUserToUser(dbuser));
 }
 
-export { handlerCreateUser, handlerGetUserById };
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ */
+async function handlerUpdateAllUserInfosById(req, res) {
+  const { id } = req.params;
+  if (!validate(id)) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      error: "invalid uuid format",
+      sent_id: id,
+    });
+  }
+
+  let { new_user_name, new_real_name, new_email, new_password } = req.body;
+
+  let dbuser;
+  try {
+    dbuser = await getUserById(id);
+  } catch (err) {
+    if (err instanceof ErrorNotFound) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        error: "given user not found",
+      });
+    }
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "could not get user",
+      error_infor: err,
+    });
+  }
+
+  if (!new_user_name) {
+    new_user_name = dbuser.user_name;
+  }
+  if (!new_real_name) {
+    new_real_name = dbuser.real_name;
+  }
+  if (!new_email) {
+    new_email = dbuser.email;
+  }
+
+  let salt;
+  let toHash = true;
+  if (!new_password) {
+    new_password = dbuser;
+    toHash = false;
+    salt = dbuser.salt;
+  }
+
+  try {
+    dbuser = await updateAllUsersInfosById(
+      id,
+      new_real_name,
+      new_user_name,
+      new_email,
+      new_password,
+      salt
+    );
+  } catch (err) {
+    if (err instanceof ErrorAlreadyExists) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error: "user with updated infos already exists",
+      });
+    }
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "could not update user",
+      error_infos: err,
+    });
+  }
+
+  return res.status(StatusCodes.OK).json(databaseUserToUser(dbuser));
+}
+
+export { handlerCreateUser, handlerGetUserById, handlerUpdateAllUserInfosById };
