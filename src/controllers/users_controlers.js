@@ -7,6 +7,7 @@ import { StatusCodes } from "http-status-codes";
 import {
   createDatabaseUser,
   ErrorAlreadyExists,
+  InvalidEmailFormat,
 } from "../database/users_queries.js";
 import { databaseUserToUser } from "../models/app_users.js";
 
@@ -31,6 +32,12 @@ async function handlerCreateUser(req, res) {
     if (err instanceof ErrorAlreadyExists) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         error: "Given user already exists",
+        error_infos: err,
+      });
+    }
+    if (err instanceof InvalidEmailFormat) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        error: "Invalid email format",
         error_infos: err,
       });
     }

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { hashPassword } from "../auth/auth.js";
 
 class ErrorAlreadyExists extends Error {}
+class InvalidEmailFormat extends Error {}
 
 /**
  *
@@ -62,10 +63,19 @@ async function createDatabaseUser(real_name, user_name, email, password) {
     if (err?.code === "23505") {
       throw new ErrorAlreadyExists("Given user already exists");
     }
+    // @ts-ignore
+    if (err?.code === "23514") {
+      throw new InvalidEmailFormat("invalid email format");
+    }
     throw err;
   }
 
   return results.rows[0];
 }
 
-export { truncateUsersTable, createDatabaseUser, ErrorAlreadyExists };
+export {
+  truncateUsersTable,
+  createDatabaseUser,
+  ErrorAlreadyExists,
+  InvalidEmailFormat,
+};
