@@ -1,19 +1,18 @@
 import { formatObject } from "../../../helpers/helpers.js";
 import { compareHashFromPassword } from "../../auth/auth.js";
-import { pool } from "../../database/database_client.js";
 import {
   createDatabaseUser,
   ErrorAlreadyExists,
+  ErrorNotFound,
+  getUserById,
+  InvalidUUID,
   truncateUsersTable,
 } from "../../database/users_queries.js";
+import { v4 as uuidv4 } from "uuid";
 
 describe("Create database user", () => {
   beforeAll(async () => {
     await truncateUsersTable();
-  });
-
-  afterAll(async () => {
-    await pool.end();
   });
 
   it("Assert equality with created users", async () => {
@@ -75,6 +74,7 @@ describe("Create database user", () => {
         expect(user.real_name).toBe(expected.real_name);
         expect(user.user_name).toBe(expected.user_name);
         expect(user.email).toBe(expected.email);
+
         expect(user).toHaveProperty("id");
         expect(user).toHaveProperty("created_at");
         expect(user).toHaveProperty("updated_at");
@@ -200,6 +200,133 @@ describe("Create database user", () => {
             )}\n Error: \n${err}\n`
           );
         }
+      }
+    }
+  });
+});
+
+describe("Get user by id", () => {
+  beforeAll(async () => {
+    await truncateUsersTable();
+  });
+
+  it("get a user with a id", async () => {
+    const tests = [
+      {
+        input: {
+          real_name: "Tales",
+          user_name: "ItzTas",
+          email: "example@",
+          password: "123",
+        },
+        expected: {
+          real_name: "Tales",
+          user_name: "ItzTas",
+          email: "example@",
+          password: "123",
+        },
+      },
+      {
+        input: {
+          real_name: "User!@#",
+          user_name: "user!@#",
+          email: "user!@#@domain.com",
+          password: "password123",
+        },
+        expected: {
+          real_name: "User!@#",
+          user_name: "user!@#",
+          email: "user!@#@domain.com",
+          password: "password123",
+        },
+      },
+      {
+        input: {
+          real_name: "Encrypt Test",
+          user_name: "encrypittest",
+          email: "encrypt@domain.com",
+          password: "securepassword",
+        },
+        expected: {
+          real_name: "Encrypt Test",
+          user_name: "encrypittest",
+          email: "encrypt@domain.com",
+          password: "securepassword",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      const { input } = test;
+      const dbuser = await createDatabaseUser(
+        input.real_name,
+        input.user_name,
+        input.email,
+        input.password
+      );
+      const { expected } = test;
+
+      try {
+        const user = await getUserById(dbuser.id);
+
+        expect(user.id).toBe(dbuser.id);
+        expect(user.real_name).toBe(expected.real_name);
+        expect(user.user_name).toBe(expected.user_name);
+        expect(user.email).toBe(expected.email);
+
+        expect(user).toHaveProperty("created_at");
+        expect(user).toHaveProperty("updated_at");
+        expect(user).toHaveProperty("salt");
+
+        expect(user.password).not.toBe(expected.password);
+
+        const resultCompPassword = await compareHashFromPassword(
+          expected.password,
+          user.salt,
+          user.password
+        );
+
+        expect(resultCompPassword).toBe(true);
+      } catch (err) {
+        throw new Error(
+          `User with infos: \n${formatObject(test)}\n error: ${err} `
+        );
+      }
+    }
+  });
+
+  it("invalid uuid intended error", async () => {
+    const tests = [
+      "not valid",
+      "this is not an valid id",
+      "sioadn902h98ns8ndca90bd89abd",
+    ];
+
+    for (const id of tests) {
+      try {
+        await expect(getUserById(id)).rejects.toThrow(InvalidUUID);
+      } catch (err) {
+        throw new Error(
+          `expected error did not happen with uuid: \n${id}\n error: ${err}`
+        );
+      }
+    }
+  });
+
+  it("user not found expected error", async () => {
+    const tests = [];
+
+    for (let _ = 1; _ <= 10; _++) {
+      tests.push(uuidv4());
+    }
+
+    for (const id of tests) {
+      try {
+        await expect(getUserById(id)).rejects.toThrow(ErrorNotFound);
+      } catch (err) {
+        throw new Error(
+          `expected error did not happen with uuid: \n${id}\n error: ${err}`
+        );
       }
     }
   });
