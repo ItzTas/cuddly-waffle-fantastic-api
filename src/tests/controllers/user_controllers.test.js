@@ -3,6 +3,7 @@ import { truncateUsersTable } from "../../database/users_queries.js";
 import { pool } from "../../database/database_client.js";
 import app from "../../main.js";
 import { StatusCodes } from "http-status-codes";
+import { formatObject } from "../../../helpers/helpers.js";
 
 describe("post /users/accounts", () => {
   beforeAll(async () => {
@@ -44,11 +45,11 @@ describe("post /users/accounts", () => {
           .expect((res) => {
             expect(res.status).toBe(StatusCodes.CREATED);
           });
-      } catch (err) {
+      } catch (/** @type {any} */ err) {
         throw new Error(`
 			expected code ${StatusCodes.CREATED} did not happen\n
-			test: \n${JSON.stringify(test, null, 2)}\n
-			error: \n${err}\n
+			test: \n${formatObject(test)}\n
+			error: \n${err}\n 
 			`);
       }
     }
@@ -125,12 +126,12 @@ describe("post /users/accounts", () => {
 
     for (const test of tests) {
       const { expected } = test;
-      try {
-        await supertest(app)
-          .post(path)
-          .send(test.body)
-          .expect((res) => {
-            const { body, status } = res;
+      await supertest(app)
+        .post(path)
+        .send(test.body)
+        .expect((res) => {
+          const { body, status } = res;
+          try {
             expect(body.real_name).toBe(expected.real_name);
             expect(body.user_name).toBe(expected.user_name);
             expect(body.email).toBe(expected.email);
@@ -143,16 +144,15 @@ describe("post /users/accounts", () => {
 
             expect(body).not.toHaveProperty("password");
             expect(body).not.toHaveProperty("salt");
-          });
-      } catch (err) {
-        throw new Error(
-          `test failed with infos: \n${test}\n error infos: \n${JSON.stringify(
-            err,
-            null,
-            2
-          )}\n `
-        );
-      }
+          } catch (/** @type {any} */ err) {
+            throw new Error(`
+              test failed with infos: \n${formatObject(
+                test
+              )} \n body: \n${formatObject(body)}\n
+              \n error: \n${err}\n
+              `);
+          }
+        });
     }
   });
 
@@ -206,26 +206,25 @@ describe("post /users/accounts", () => {
     ];
 
     for (const test of tests) {
-      try {
-        await supertest(app)
-          .post(path)
-          .send(test.body)
-          .expect((res) => {
+      const { name } = test;
+      await supertest(app)
+        .post(path)
+        .send(test.body)
+        .expect((res) => {
+          try {
             expect(res.status).toBeGreaterThanOrEqual(400);
             expect(res.status).toBeLessThan(500);
 
             expect(res.body).toHaveProperty("error");
-          });
-      } catch (err) {
-        const { name } = test;
-        throw new Error(`
-			expected error ${name} did not happen\n test infos: \n${test}\n error: \n${JSON.stringify(
-          err,
-          null,
-          2
-        )}\n
-			`);
-      }
+          } catch (/** @type {any} */ err) {
+            throw new Error(`
+              expected error ${name} did not happen\n test infos: \n${formatObject(
+              test
+            )} \n body: \n${formatObject(res.body)}\n 
+            \n error: \n${err}\n
+              `);
+          }
+        });
     }
   });
 });

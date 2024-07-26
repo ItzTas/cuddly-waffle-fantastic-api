@@ -1,3 +1,4 @@
+import { formatObject } from "../../../helpers/helpers.js";
 import { compareHashFromPassword } from "../../auth/auth.js";
 import { pool } from "../../database/database_client.js";
 import {
@@ -62,6 +63,7 @@ describe("Create database user", () => {
     ];
 
     for (const test of tests) {
+      const { expected } = test;
       try {
         const user = await createDatabaseUser(
           test.input.real_name,
@@ -69,8 +71,6 @@ describe("Create database user", () => {
           test.input.email,
           test.input.password
         );
-
-        const { expected } = test;
 
         expect(user.real_name).toBe(expected.real_name);
         expect(user.user_name).toBe(expected.user_name);
@@ -91,7 +91,7 @@ describe("Create database user", () => {
         expect(resultCompPassword).toBe(true);
       } catch (err) {
         throw new Error(
-          `User with infos: \n${JSON.stringify(test, null, 2)}\n ${err} `
+          `User with infos: \n${formatObject(test)}\n error: ${err} `
         );
       }
     }
@@ -159,11 +159,9 @@ describe("Create database user", () => {
         ).rejects.toThrow(Error);
       } catch (err) {
         throw new Error(
-          `expected error ${name} did not happen! Test infos: \n${JSON.stringify(
-            test,
-            null,
-            2
-          )}\n ${err}`
+          `expected error ${name} did not happen! Test infos: \n${formatObject(
+            test
+          )}\n error: ${err}`
         );
       }
     }
@@ -197,11 +195,9 @@ describe("Create database user", () => {
           expect(err).toBeInstanceOf(ErrorAlreadyExists);
         } else {
           throw new Error(
-            `Unexpected error for user: ${JSON.stringify(
-              test,
-              null,
-              2
-            )}. Error: ${err}`
+            `Unexpected error for user: \n${formatObject(
+              test
+            )}\n Error: \n${err}\n`
           );
         }
       }
