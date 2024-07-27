@@ -9,6 +9,7 @@ import {
   InvalidUUID,
   truncateUsersTable,
   updateAllUsersInfosById,
+  updateUserPasswordById,
 } from "../../database/users_queries.js";
 import { v4 as uuidv4 } from "uuid";
 import { formatObject } from "../../helpers/helpers.js";
@@ -560,6 +561,86 @@ describe("get users by email", () => {
       } catch (err) {
         throw new Error(
           `User with infos: \n${formatObject(test)}\n error: ${err} `
+        );
+      }
+    }
+  });
+});
+
+describe("update user password by id", () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
+    await truncateUsersTable();
+  });
+
+  it("assures return values match", async () => {
+    const tests = [
+      {
+        input: {
+          real_name: "Tales",
+          user_name: "ItzTas",
+          email: "example@as",
+          password: "12345",
+        },
+        expected: {
+          real_name: "Tales",
+          user_name: "ItzTas",
+          email: "example@as",
+          password: "123",
+        },
+      },
+      {
+        input: {
+          real_name: "User!@#",
+          user_name: "user!@#",
+          email: "user!@#@domain.com",
+          password: "password123",
+        },
+        expected: {
+          real_name: "User!@#",
+          user_name: "user!@#",
+          email: "user!@#@domain.com",
+          password: "password1",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      const { input, expected } = test;
+      const { id } = await createDatabaseUser(
+        input.real_name,
+        input.user_name,
+        input.email,
+        input.password
+      );
+
+      let upUser;
+      try {
+        upUser = await updateUserPasswordById(id, input.password.slice(0, -2));
+
+        expect(upUser).toHaveProperty("user_name", expected.user_name);
+        expect(upUser).toHaveProperty("real_name", expected.real_name);
+        expect(upUser).toHaveProperty("email", expected.email);
+
+        expect(upUser).toHaveProperty("updated_at");
+        expect(upUser).toHaveProperty("created_at");
+        expect(upUser).toHaveProperty("salt");
+        expect(upUser).toHaveProperty("id", id);
+
+        expect(upUser.password).not.toBe(expected.password);
+        const resultCompPassword = await compareHashFromPassword(
+          expected.password,
+          upUser.salt,
+          upUser.password
+        );
+
+        expect(resultCompPassword).toBe(true);
+      } catch (err) {
+        throw new Error(
+          `User with infos: \n${formatObject(test)}\n  
+          updated user: \n${upUser}\n error: \n${err}\n`
         );
       }
     }
