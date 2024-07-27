@@ -250,12 +250,46 @@ const QueryGetUserByEmail = `
  *
  * @param {String} email
  * @returns {Promise<DatabaseUser>}
+ * @throws {ErrorNotFound}
+ * @throws {Error}
  */
 async function getUserByEmail(email) {
   const result = await pool.query(QueryGetUserByEmail, [email]);
   if (result.rows.length === 0) {
     throw new ErrorNotFound("user with given email was not found");
   }
+  return result.rows[0];
+}
+
+const QueryUpdateUserPasswordById = `
+  UPDATE users 
+  SET password = $1, salt = $2
+  WHERE id = $3
+  RETURNING *;
+`;
+
+/**
+ *
+ * @param {String} id
+ * @param {String} password
+ * @returns {Promise<DatabaseUser>}
+ */
+async function updateUserPasswordById(id, password) {
+  if (!validate(id)) {
+    throw new InvalidUUID("invalid uuid format");
+  }
+  const { hashedPassword, salt } = await hashPassword(password);
+
+  const result = await pool.query(QueryUpdateUserPasswordById, [
+    hashedPassword,
+    salt,
+    id,
+  ]);
+
+  if (result.rows.length === 0) {
+    throw new ErrorNotFound("user with given id not found");
+  }
+
   return result.rows[0];
 }
 
@@ -270,4 +304,5 @@ export {
   updateAllUsersInfosById,
   getAllDatabaseUsers,
   getUserByEmail,
+  updateUserPasswordById,
 };
