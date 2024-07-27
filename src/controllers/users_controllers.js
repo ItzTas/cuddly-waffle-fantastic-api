@@ -9,6 +9,7 @@ import {
   ErrorAlreadyExists,
   ErrorNotFound,
   getAllDatabaseUsers,
+  getUserByEmail,
   getUserById,
   InvalidEmailFormat,
   updateAllUsersInfosById,
@@ -186,9 +187,36 @@ async function handlerGetAllUsers(_, res) {
   return res.status(StatusCodes.OK).json(users);
 }
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ */
+async function handlerGetUserByEmail(req, res) {
+  const { email } = req.params;
+
+  let dbUser;
+  try {
+    dbUser = await getUserByEmail(email);
+  } catch (err) {
+    if (err instanceof ErrorNotFound) {
+      return res.status(404).json({
+        error: "user with given email not found",
+      });
+    }
+    return res.status(500).json({
+      error: "could not get user",
+      error_infos: err,
+    });
+  }
+
+  return res.status(200).json(databaseUserToUser(dbUser));
+}
+
 export {
   handlerCreateUser,
   handlerGetUserById,
   handlerUpdateAllUserInfosById,
   handlerGetAllUsers,
+  handlerGetUserByEmail,
 };
