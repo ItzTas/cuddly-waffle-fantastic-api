@@ -4,6 +4,7 @@ import {
   ErrorAlreadyExists,
   ErrorNotFound,
   getAllDatabaseUsers,
+  getUserByEmail,
   getUserById,
   InvalidUUID,
   truncateUsersTable,
@@ -443,7 +444,8 @@ describe("get all database users", () => {
       },
     ];
 
-    for (const { real_name, user_name, email, password } of tests) {
+    for (const test of tests) {
+      const { real_name, user_name, email, password } = test;
       await createDatabaseUser(real_name, user_name, email, password);
     }
 
@@ -475,6 +477,90 @@ describe("get all database users", () => {
           \n user with infos: \n${formatObject(user)}\n
           \n error: \n${err}\n
           `);
+      }
+    }
+  });
+});
+
+describe("get users by email", () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
+    await truncateUsersTable();
+  });
+
+  it("ensures equallity in informations", async () => {
+    const tests = [
+      {
+        real_name: "tales lindo",
+        user_name: "taleestos",
+        email: "asdaino@90h",
+        password: "sa90dhn98awbdns",
+      },
+      {
+        real_name: "User!@#",
+        user_name: "user!@#",
+        email: "user!@#@domain.com",
+        password: "password123",
+      },
+    ];
+
+    for (const test of tests) {
+      const { real_name, user_name, email, password } = test;
+      await createDatabaseUser(real_name, user_name, email, password);
+
+      try {
+        const user = await getUserByEmail(email);
+
+        expect(user.real_name).toBe(test.real_name);
+        expect(user.user_name).toBe(test.user_name);
+        expect(user.email).toBe(test.email);
+
+        expect(user).toHaveProperty("id");
+        expect(user).toHaveProperty("created_at");
+        expect(user).toHaveProperty("updated_at");
+        expect(user).toHaveProperty("salt");
+
+        expect(user.password).not.toBe(test.password);
+
+        const resultCompPassword = await compareHashFromPassword(
+          test.password,
+          user.salt,
+          user.password
+        );
+        expect(resultCompPassword).toBe(true);
+      } catch (err) {
+        throw new Error(
+          `User with infos: \n${formatObject(test)}\n error: ${err} `
+        );
+      }
+    }
+  });
+
+  it("assures error not found", async () => {
+    const tests = [
+      {
+        real_name: "tales lindo",
+        user_name: "taleestos",
+        email: "asdaino@90h",
+        password: "sa90dhn98awbdns",
+      },
+      {
+        real_name: "User!@#",
+        user_name: "user!@#",
+        email: "user!@#@domain.com",
+        password: "password123",
+      },
+    ];
+
+    for (const test of tests) {
+      try {
+        await expect(getUserByEmail(test.email)).rejects.toThrow(ErrorNotFound);
+      } catch (err) {
+        throw new Error(
+          `User with infos: \n${formatObject(test)}\n error: ${err} `
+        );
       }
     }
   });
