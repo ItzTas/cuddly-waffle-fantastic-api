@@ -5,8 +5,8 @@ import {
 } from "../../database/users_queries.js";
 import app from "../../main.js";
 import { StatusCodes } from "http-status-codes";
-import { formatObject } from "../../../helpers/helpers.js";
 import { v4 as uuidv4 } from "uuid";
+import { formatObject } from "../../helpers/helpers.js";
 
 describe("post /api/users/accounts", () => {
   beforeEach(async () => {

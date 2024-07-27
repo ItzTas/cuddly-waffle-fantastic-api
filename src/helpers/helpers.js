@@ -8,6 +8,7 @@ import moment from "moment";
 function formatObject(obj) {
   return JSON.stringify(obj, null, 2);
 }
+
 function getNowUTC() {
   return moment().utc().format();
 }

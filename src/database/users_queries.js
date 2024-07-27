@@ -80,7 +80,6 @@ async function createDatabaseUser(real_name, user_name, email, password) {
   }
   const id = uuidv4();
 
-  //@ts-ignore
   const { hashedPassword, salt } = await hashPassword(password);
 
   let results;
@@ -117,6 +116,8 @@ const QueryGetUserById = `
  *
  * @param {String} id
  * @returns {Promise<DatabaseUser>}
+ * @throws {ErrorNotFound}
+ * @throws {Error}
  */
 async function getUserById(id) {
   if (!validate(id)) {
@@ -232,6 +233,7 @@ function getAllQuery(table) {
 
 /**
  * @returns {Promise<Array<DatabaseUser>>}
+ * @throws {Error}
  */
 async function getAllDatabaseUsers() {
   const query = getAllQuery("users");

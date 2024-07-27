@@ -4,7 +4,7 @@ import {
   handlerGetAllUsers,
   handlerGetUserById,
   handlerUpdateAllUserInfosById,
-} from "../controllers/users_controlers.js";
+} from "../controllers/users_controllers.js";
 
 const router = Router();
 
