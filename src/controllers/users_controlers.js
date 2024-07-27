@@ -163,4 +163,16 @@ async function handlerUpdateAllUserInfosById(req, res) {
   return res.status(StatusCodes.OK).json(databaseUserToUser(dbuser));
 }
 
-export { handlerCreateUser, handlerGetUserById, handlerUpdateAllUserInfosById };
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ */
+function handlerGetAllUsers(req, res) {}
+
+export {
+  handlerCreateUser,
+  handlerGetUserById,
+  handlerUpdateAllUserInfosById,
+  handlerGetAllUsers,
+};
