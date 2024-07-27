@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node --watch ./src/main.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --force-exit --runInBand",
-    "compose_up": "sudo docker-compose -f docker/docker-compose.yaml up --build",
+    "compose_up": "sudo docker-compose -f docker/docker-compose.yaml up --build -d",
     "compose_down": "docker-compose -f docker/docker-compose.yaml down"
   },
   "repository": {

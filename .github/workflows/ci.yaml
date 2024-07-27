@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: "22.4.0"
 
+      - name: set up database
+        run: npm run compose_up
+
       - name: Install dependencies
         run: npm install
 
