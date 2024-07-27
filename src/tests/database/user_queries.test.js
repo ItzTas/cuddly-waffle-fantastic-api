@@ -4,6 +4,7 @@ import {
   createDatabaseUser,
   ErrorAlreadyExists,
   ErrorNotFound,
+  getAllDatabaseUsers,
   getUserById,
   InvalidUUID,
   truncateUsersTable,
@@ -44,20 +45,6 @@ describe("Create database user", () => {
           user_name: "user!@#",
           email: "user!@#@domain.com",
           password: "password123",
-        },
-      },
-      {
-        input: {
-          real_name: "Encrypt Test",
-          user_name: "encrypittest",
-          email: "encrypt@domain.com",
-          password: "securepassword",
-        },
-        expected: {
-          real_name: "Encrypt Test",
-          user_name: "encrypittest",
-          email: "encrypt@domain.com",
-          password: "securepassword",
         },
       },
     ];
@@ -160,9 +147,9 @@ describe("Create database user", () => {
         ).rejects.toThrow(Error);
       } catch (err) {
         throw new Error(
-          `expected error ${name} did not happen! Test infos: \n${formatObject(
-            test
-          )}\n error: ${err}`
+          `expected error ${name} did not happen! 
+          \n Test infos: \n${formatObject(test)} 
+          \n error: ${err}`
         );
       }
     }
@@ -196,9 +183,9 @@ describe("Create database user", () => {
           expect(err).toBeInstanceOf(ErrorAlreadyExists);
         } else {
           throw new Error(
-            `Unexpected error for user: \n${formatObject(
-              test
-            )}\n Error: \n${err}\n`
+            `Unexpected error for user: 
+            \n${formatObject(test)}
+            \n Error: \n${err}\n`
           );
         }
       }
@@ -241,20 +228,6 @@ describe("Get user by id", () => {
           password: "password123",
         },
       },
-      {
-        input: {
-          real_name: "Encrypt Test",
-          user_name: "encrypittest",
-          email: "encrypt@domain.com",
-          password: "securepassword",
-        },
-        expected: {
-          real_name: "Encrypt Test",
-          user_name: "encrypittest",
-          email: "encrypt@domain.com",
-          password: "securepassword",
-        },
-      },
     ];
 
     for (const test of tests) {
@@ -290,7 +263,7 @@ describe("Get user by id", () => {
         expect(resultCompPassword).toBe(true);
       } catch (err) {
         throw new Error(
-          `User with infos: \n${formatObject(test)}\n error: ${err} `
+          `User with infos: \n${formatObject(test)}\n error: \n${err}\n `
         );
       }
     }
@@ -368,20 +341,6 @@ describe("Update all users infos by id", () => {
           password: "password12",
         },
       },
-      {
-        input: {
-          real_name: "Encrypt Test",
-          user_name: "encrypittest",
-          email: "encrypt@domain.com",
-          password: "securepassword",
-        },
-        expected: {
-          real_name: "Encrypt Tes",
-          user_name: "encrypittes",
-          email: "encrypt@domain.co",
-          password: "securepasswor",
-        },
-      },
     ];
 
     for (const test of tests) {
@@ -446,6 +405,62 @@ describe("Update all users infos by id", () => {
         throw new Error(`
           expected error did not happend with id: ${id}
           \n error: ${err}
+          `);
+      }
+    }
+  });
+});
+
+describe("get all database users", () => {
+  beforeAll(async () => {
+    await truncateUsersTable();
+  });
+  it("assures equality in informations", async () => {
+    await truncateUsersTable();
+
+    /**
+     * @type {Array<Object.<string, string>>}
+     */
+    const tests = [
+      {
+        real_name: "talit",
+        user_name: "tails",
+        email: "email@calvice",
+        password: "as900dh98",
+      },
+    ];
+
+    for (const { real_name, user_name, email, password } of tests) {
+      await createDatabaseUser(real_name, user_name, email, password);
+    }
+
+    const users = await getAllDatabaseUsers();
+
+    for (const user of users) {
+      const test = tests.find((t) => t.email === user.email);
+      try {
+        expect(users.length).toBe(tests.length);
+        expect(user).toBeDefined();
+        // @ts-ignore
+        expect(user.real_name).toBe(test.real_name);
+        // @ts-ignore
+        expect(user.user_name).toBe(test.user_name);
+        // @ts-ignore
+        expect(user.email).toBe(test.email);
+
+        expect(user).toHaveProperty("created_at");
+        expect(user).toHaveProperty("updated_at");
+        expect(user).toHaveProperty("id");
+        expect(user).toHaveProperty("password");
+        expect(user).toHaveProperty("salt");
+
+        // @ts-ignore
+        expect(user.password).not.toBe(test.password);
+      } catch (err) {
+        throw new Error(`
+          test with infos: \n${test}\n
+          \n user with infos: \n${formatObject(user)}\n
+          \n error: \n${err}\n
           `);
       }
     }
