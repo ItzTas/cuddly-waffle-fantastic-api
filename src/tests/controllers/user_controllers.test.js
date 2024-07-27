@@ -1,12 +1,14 @@
 import supertest from "supertest";
 import {
   createDatabaseUser,
+  getUserById,
   truncateUsersTable,
 } from "../../database/users_queries.js";
 import app from "../../main.js";
 import { StatusCodes } from "http-status-codes";
 import { v4 as uuidv4 } from "uuid";
 import { formatObject } from "../../helpers/helpers.js";
+import { compareHashFromPassword } from "../../auth/auth.js";
 
 describe("post /api/users/accounts", () => {
   beforeEach(async () => {
@@ -1148,8 +1150,93 @@ describe("get /api/users/:email/email", () => {
             expect(resBody).not.toHaveProperty("salt");
           } catch (err) {
             throw new Error(`
-              Test failed with infos: \n${JSON.stringify(test, null, 2)} \n
-              Response body: \n${JSON.stringify(resBody, null, 2)}\n
+              Test failed with infos: \n${formatObject(test)} \n
+              Response body: \n${formatObject(resBody)}\n
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+});
+
+describe("patch /api/users/password/:id/id", () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
+    await truncateUsersTable();
+  });
+
+  /**
+   *
+   * @param {String} id
+   * @returns {String}
+   */
+  function getPath(id) {
+    return `/api/users/password/${id}/id`;
+  }
+
+  it("assures equality in informations", async () => {
+    const tests = [
+      {
+        real_name: "jailson",
+        user_name: "jalescon",
+        email: "9a0@90n",
+        password: "9009090",
+        new_password: "707070",
+      },
+    ];
+
+    for (const test of tests) {
+      const { real_name, user_name, email, password, new_password } = test;
+      const { id, salt: oldSalt } = await createDatabaseUser(
+        real_name,
+        user_name,
+        email,
+        password
+      );
+      const url = getPath(id);
+      await supertest(app)
+        .patch(url)
+        .send({ old_password: password, new_password })
+        .expect(async (res) => {
+          const { body, status } = res;
+          try {
+            expect(status).toBe(200);
+            const user = await getUserById(id);
+
+            expect(user.password).not.toBe(password);
+            expect(user.password).not.toBe(new_password);
+
+            const match = await compareHashFromPassword(
+              password,
+              oldSalt,
+              user.password
+            );
+            expect(match).toBe(false);
+
+            const matchRight = await compareHashFromPassword(
+              new_password,
+              user.salt,
+              user.password
+            );
+
+            expect(matchRight).toBe(true);
+
+            expect(body).toHaveProperty("real_name", real_name);
+            expect(body).toHaveProperty("user_name", user_name);
+            expect(body).toHaveProperty("email", email);
+
+            expect(body).toHaveProperty("created_at");
+            expect(body).toHaveProperty("updated_at");
+
+            expect(body).not.toHaveProperty("password");
+            expect(body).not.toHaveProperty("salt");
+          } catch (err) {
+            throw new Error(`
+              Test failed with infos: \n${formatObject(test)} \n
+              Response body: \n${formatObject(body)}\n
               Error: \n${err}\n
               `);
           }
