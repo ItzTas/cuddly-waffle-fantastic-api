@@ -1243,4 +1243,153 @@ describe("patch /api/users/password/:id/id", () => {
         });
     }
   });
+
+  it("assure 404 not found happens", async () => {
+    for (let _ = 0; _ <= 10; _++) {
+      const sendBody = { old_password: "qualquer coisa", new_password: "sla" };
+
+      const id = uuidv4();
+      const path = getPath(id);
+
+      await supertest(app)
+        .patch(path)
+        .send(sendBody)
+        .expect((res) => {
+          const { body, status } = res;
+          try {
+            expect(status).toBe(404);
+            expect(body).toHaveProperty(
+              "error",
+              "user with given id not found"
+            );
+          } catch (err) {
+            throw new Error(`
+              Test failed with infos: \n${id} \n
+              Response body: \n${formatObject(body)}\n
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("ensures error with invalid id", async () => {
+    const tests = [
+      "not valid",
+      "this is not a valid id",
+      "sioadn902h98ns8ndca90bd89abd",
+    ];
+
+    for (const id of tests) {
+      const path = getPath(id);
+
+      await supertest(app)
+        .patch(path)
+        .send({})
+        .expect((res) => {
+          const { body, status } = res;
+          try {
+            expect(status).toBe(400);
+            expect(body).toHaveProperty("error", "invalid uuid format");
+          } catch (err) {
+            throw new Error(`
+              Test failed with infos: \n${id} \n
+              Response body: \n${formatObject(body)}\n
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("assures error with wrong password", async () => {
+    const tests = [
+      {
+        real_name: "jailson",
+        user_name: "jalescon",
+        email: "9a0@90n",
+        password: "9009090",
+        new_password: "707070",
+      },
+    ];
+
+    for (const test of tests) {
+      const { real_name, user_name, email, password, new_password } = test;
+      const { id } = await createDatabaseUser(
+        real_name,
+        user_name,
+        email,
+        password
+      );
+      const url = getPath(id);
+      await supertest(app)
+        .patch(url)
+        .send({ old_password: password + "wrong password!", new_password })
+        .expect(async (res) => {
+          const { body, status } = res;
+          try {
+            expect(status).toBe(401);
+            expect(body).toHaveProperty("error", "unauthorized");
+          } catch (err) {
+            throw new Error(`
+              Test failed with infos: \n${formatObject(test)} \n
+              Response body: \n${formatObject(body)}\n
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("assures error with missing params", async () => {
+    const tests = [
+      {
+        real_name: "jailson",
+        user_name: "jalescon",
+        email: "9a0@90n",
+        old_password: "9009090",
+        new_password: "",
+        test_name: "no new password",
+      },
+      {
+        real_name: "jailsonles",
+        user_name: "jalescondoido",
+        email: "9a0@90nsad",
+        old_password: "",
+        new_password: "as9dj0",
+        test_name: "no old password",
+      },
+    ];
+
+    for (const test of tests) {
+      const { real_name, user_name, email, old_password, new_password } = test;
+      const { id } = await createDatabaseUser(
+        real_name,
+        user_name,
+        email,
+        old_password + "this is just so it can be created"
+      );
+      const url = getPath(id);
+      await supertest(app)
+        .patch(url)
+        .send({ old_password, new_password })
+        .expect(async (res) => {
+          const { body, status } = res;
+          try {
+            expect(status).toBe(400);
+            expect(body).toHaveProperty(
+              "error",
+              "new_password and old_password params required"
+            );
+          } catch (err) {
+            throw new Error(`
+              Test ${test.test_name} 
+              failed with infos: \n${formatObject(test)} \n
+              Response body: \n${formatObject(body)}\n
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
 });
