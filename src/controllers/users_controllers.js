@@ -13,9 +13,11 @@ import {
   getUserById,
   InvalidEmailFormat,
   updateAllUsersInfosById,
+  updateUserPasswordById,
 } from "../database/users_queries.js";
 import { databaseUserToUser } from "../models/users.js";
 import { validate } from "uuid";
+import { compareHashFromPassword } from "../auth/auth.js";
 
 /**
  *
@@ -213,10 +215,79 @@ async function handlerGetUserByEmail(req, res) {
   return res.status(200).json(databaseUserToUser(dbUser));
 }
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ */
+async function handlerUpdateUserPasswordById(req, res) {
+  const { id } = req.params;
+  if (!validate(id)) {
+    return res.status(400).json({
+      error: "invalid uuid format",
+    });
+  }
+
+  const { new_password, old_password } = req.body;
+  if (!new_password || !old_password) {
+    return res.status(400).json({
+      error: "new_password and old_password params required",
+    });
+  }
+
+  let dbuser;
+  try {
+    dbuser = await getUserById(id);
+  } catch (err) {
+    if (err instanceof ErrorNotFound) {
+      return res.status(404).json({
+        error: "user with given id not found",
+      });
+    }
+    return res.status(500).json({
+      error: "could not get user",
+      error_infos: err,
+    });
+  }
+
+  let authenticated;
+  try {
+    authenticated = await compareHashFromPassword(
+      old_password,
+      dbuser.salt,
+      dbuser.password
+    );
+  } catch (err) {
+    return res.status(500).json({
+      error: "could not compare password",
+      error_infos: err,
+    });
+  }
+
+  if (!authenticated) {
+    return res.status(401).json({
+      error: "unauthorized",
+    });
+  }
+
+  let updatedUser;
+  try {
+    updatedUser = await updateUserPasswordById(id, new_password);
+  } catch (err) {
+    return res.status(500).json({
+      error: "could not update user",
+      error_infos: err,
+    });
+  }
+
+  return res.status(200).json(databaseUserToUser(updatedUser));
+}
+
 export {
   handlerCreateUser,
   handlerGetUserById,
   handlerUpdateAllUserInfosById,
   handlerGetAllUsers,
   handlerGetUserByEmail,
+  handlerUpdateUserPasswordById,
 };
