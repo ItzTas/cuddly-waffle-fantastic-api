@@ -13,7 +13,10 @@ import {
 import { v4 as uuidv4 } from "uuid";
 
 describe("Create database user", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
     await truncateUsersTable();
   });
 
@@ -194,7 +197,10 @@ describe("Create database user", () => {
 });
 
 describe("Get user by id", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
     await truncateUsersTable();
   });
 
@@ -307,7 +313,10 @@ describe("Get user by id", () => {
 });
 
 describe("Update all users infos by id", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
     await truncateUsersTable();
   });
 
@@ -412,9 +421,13 @@ describe("Update all users infos by id", () => {
 });
 
 describe("get all database users", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     await truncateUsersTable();
   });
+  afterEach(async () => {
+    await truncateUsersTable();
+  });
+
   it("assures equality in informations", async () => {
     await truncateUsersTable();
 

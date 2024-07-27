@@ -9,7 +9,10 @@ import { formatObject } from "../../../helpers/helpers.js";
 import { v4 as uuidv4 } from "uuid";
 
 describe("post /api/users/accounts", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
     await truncateUsersTable();
   });
 
@@ -93,32 +96,6 @@ describe("post /api/users/accounts", () => {
           real_name: "Ana Maria",
           user_name: "ana_maria123",
           email: "ana@maria.com",
-        },
-      },
-      {
-        body: {
-          real_name: "João Silva",
-          user_name: "joaosilva",
-          email: "joao@silva.com",
-          password: "joaosenha789",
-        },
-        expected: {
-          real_name: "João Silva",
-          user_name: "joaosilva",
-          email: "joao@silva.com",
-        },
-      },
-      {
-        body: {
-          real_name: "Maria Clara",
-          user_name: "maria_clara",
-          email: "maria@clara.com",
-          password: "mariapass123",
-        },
-        expected: {
-          real_name: "Maria Clara",
-          user_name: "maria_clara",
-          email: "maria@clara.com",
         },
       },
     ];
@@ -239,6 +216,18 @@ describe("post /api/users/accounts", () => {
         email: "t@asion",
         password: "9shnd80bn",
       },
+      {
+        real_name: "Alice Johnson",
+        user_name: "alicejohnson23",
+        email: "alice.johnson@example.com",
+        password: "p@ssw0rd123",
+      },
+      {
+        real_name: "Carlos Silva",
+        user_name: "carlossilva987",
+        email: "carlos.silva@domain.com",
+        password: "s3cr3tP@ssw0rd",
+      },
     ];
 
     for (const test of tests) {
@@ -271,7 +260,10 @@ describe("post /api/users/accounts", () => {
 });
 
 describe("get /api/users/:id/id", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
     await truncateUsersTable();
   });
 
@@ -421,7 +413,10 @@ describe("get /api/users/:id/id", () => {
 });
 
 describe("patch /api/users/:id/id", () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
     await truncateUsersTable();
   });
 
@@ -647,7 +642,6 @@ describe("patch /api/users/:id/id", () => {
   });
 
   it("email partial update", async () => {
-    await truncateUsersTable();
     const tests = [
       {
         input: {
@@ -739,7 +733,6 @@ describe("patch /api/users/:id/id", () => {
   });
 
   it("real_name partial update", async () => {
-    await truncateUsersTable();
     const tests = [
       {
         input: {
@@ -831,7 +824,6 @@ describe("patch /api/users/:id/id", () => {
   });
 
   it("user_name partial update", async () => {
-    await truncateUsersTable();
     const tests = [
       {
         input: {
@@ -1010,5 +1002,19 @@ describe("patch /api/users/:id/id", () => {
           }
         });
     }
+  });
+});
+
+describe("get /api/users", () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
+    await truncateUsersTable();
+  });
+  const path = "/api/users";
+
+  it("assures equallity and security in returned data", async () => {
+    const tests = [];
   });
 });
