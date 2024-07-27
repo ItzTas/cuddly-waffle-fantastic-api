@@ -1,11 +1,13 @@
+// functions that imitate the functionality of types
+
 /**
  *
  * @param {String} id
  * @param {String} real_name
  * @param {String} user_name
  * @param {String} email
- * @param {EpochTimeStamp} created_at
- * @param {EpochTimeStamp} updated_at
+ * @param {String | EpochTimeStamp | Date} created_at
+ * @param {String | EpochTimeStamp | Date} updated_at
  */
 function User(id, real_name, user_name, email, created_at, updated_at) {
   this.id = id;
@@ -24,8 +26,8 @@ function User(id, real_name, user_name, email, created_at, updated_at) {
  * @param {String} email
  * @param {String} password
  * @param {String} salt
- * @param {EpochTimeStamp} created_at
- * @param {EpochTimeStamp} updated_at
+ * @param {String | EpochTimeStamp | Date} created_at
+ * @param {String | EpochTimeStamp | Date} updated_at
  */
 function DatabaseUser(
   id,
@@ -48,11 +50,10 @@ function DatabaseUser(
 }
 
 /**
- *
+ * @readonly database user to user hides secure user informations
  * @param {DatabaseUser} dbUser
  * @returns {User}
  */
-// database user to user hides secure user informations
 function databaseUserToUser(dbUser) {
   return new User(
     dbUser.id,
