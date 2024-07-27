@@ -263,8 +263,8 @@ async function getUserByEmail(email) {
 
 const QueryUpdateUserPasswordById = `
   UPDATE users 
-  SET password = $1, salt = $2, updated_at = $3
-  WHERE id = $4
+  SET password = $1, salt = $2
+  WHERE id = $3
   RETURNING *;
 `;
 
@@ -285,7 +285,6 @@ async function updateUserPasswordById(id, password) {
   const result = await pool.query(QueryUpdateUserPasswordById, [
     hashedPassword,
     salt,
-    getNowUTC(),
     id,
   ]);
 
