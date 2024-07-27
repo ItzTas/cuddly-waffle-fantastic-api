@@ -273,6 +273,8 @@ const QueryUpdateUserPasswordById = `
  * @param {String} id
  * @param {String} password
  * @returns {Promise<DatabaseUser>}
+ * @throws {ErrorNotFound}
+ * @throws {Error}
  */
 async function updateUserPasswordById(id, password) {
   if (!validate(id)) {
