@@ -241,6 +241,24 @@ async function getAllDatabaseUsers() {
   return results.rows;
 }
 
+const QueryGetUserByEmail = `
+  SELECT * FROM users 
+  WHERE email = $1;
+`;
+
+/**
+ *
+ * @param {String} email
+ * @returns {Promise<DatabaseUser>}
+ */
+async function getUserByEmail(email) {
+  const result = await pool.query(QueryGetUserByEmail, [email]);
+  if (result.rows.length === 0) {
+    throw new ErrorNotFound("user with given email was not found");
+  }
+  return result.rows[0];
+}
+
 export {
   truncateUsersTable,
   createDatabaseUser,
@@ -251,4 +269,5 @@ export {
   ErrorNotFound,
   updateAllUsersInfosById,
   getAllDatabaseUsers,
+  getUserByEmail,
 };
