@@ -8,6 +8,7 @@ import {
   createDatabaseUser,
   ErrorAlreadyExists,
   ErrorNotFound,
+  getAllDatabaseUsers,
   getUserById,
   InvalidEmailFormat,
   updateAllUsersInfosById,
@@ -165,10 +166,24 @@ async function handlerUpdateAllUserInfosById(req, res) {
 
 /**
  *
- * @param {Request} req
+ * @param {Request} _
  * @param {Response} res
  */
-function handlerGetAllUsers(req, res) {}
+async function handlerGetAllUsers(_, res) {
+  let dbusers;
+
+  try {
+    dbusers = await getAllDatabaseUsers();
+  } catch (err) {
+    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      error: "could not get users",
+      error_infos: err,
+    });
+  }
+
+  const users = dbusers.map((dbu) => databaseUserToUser(dbu));
+  return res.status(StatusCodes.OK).json(users);
+}
 
 export {
   handlerCreateUser,

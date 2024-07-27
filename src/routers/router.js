@@ -9,7 +9,7 @@ import {
 const router = Router();
 
 router.post("/api/users/accounts", handlerCreateUser);
-router.get("/users", handlerGetAllUsers);
+router.get("/api/users", handlerGetAllUsers);
 router.get("/api/users/:id/id", handlerGetUserById);
 router.patch("/api/users/:id/id", handlerUpdateAllUserInfosById);
 
