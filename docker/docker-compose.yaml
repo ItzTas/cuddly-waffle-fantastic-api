@@ -1,5 +1,17 @@
 name: waffle-api-backend
 services:
+  waffle_app:
+    build:
+      context: ../
+      dockerfile: ./docker/app/Dockerfile
+    env_file:
+      - ../.env.local
+    volumes:
+      - ../src:/app/api/src
+    ports:
+      - 3001:3000
+    networks:
+      - app
   database:
     image: postgres:16.3
     ports:
@@ -9,7 +21,7 @@ services:
     environment:
       POSTGRES_USER: waffle_db
       POSTGRES_PASSWORD: 123
-      POSTGRES_DATABASE: waffle_db
+      POSTGRES_DB: waffle_db
     networks:
       - app
     volumes:
