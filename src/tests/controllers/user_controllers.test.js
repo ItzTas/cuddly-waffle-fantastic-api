@@ -1015,6 +1015,145 @@ describe("get /api/users", () => {
   const path = "/api/users";
 
   it("assures equallity and security in returned data", async () => {
-    const tests = [];
+    const tests = [
+      {
+        real_name: "Talzos",
+        user_name: "Talzositosss",
+        email: "t@asion",
+        password: "9shnd80bn",
+      },
+      {
+        real_name: "Alice Johnson",
+        user_name: "alicejohnson23",
+        email: "alice.johnson@example.com",
+        password: "p@ssw0rd123",
+      },
+      {
+        real_name: "Carlos Silva",
+        user_name: "carlossilva987",
+        email: "carlos.silva@domain.com",
+        password: "s3cr3tP@ssw0rd",
+      },
+    ];
+
+    for (const test of tests) {
+      const { real_name, user_name, email, password } = test;
+      await createDatabaseUser(real_name, user_name, email, password);
+    }
+
+    await supertest(app)
+      .get(path)
+      .expect((res) => {
+        const { body, status } = res;
+        try {
+          expect(Array.isArray(body)).toBe(true);
+          expect(status).toBe(200);
+        } catch (err) {
+          throw new Error(`
+            expected result did not happen 
+            \n tests infos: \n${formatObject(tests)}\n
+            \n body: \n${formatObject(body)}\n
+            \n error: \n${err}\n
+          `);
+        }
+      });
+  });
+});
+
+describe("get /api/users/:email/email", () => {
+  beforeEach(async () => {
+    await truncateUsersTable();
+  });
+  afterEach(async () => {
+    await truncateUsersTable();
+  });
+
+  /**
+   *
+   * @param {String} email
+   * @returns {String}
+   */
+  function getPath(email) {
+    return `/api/users/${email}/email`;
+  }
+
+  it("should return user data if the user exists", async () => {
+    const tests = [
+      {
+        body: {
+          real_name: "Ruan",
+          user_name: "ruan_AAA",
+          email: "ruan@AAA",
+          password: "as9dn90",
+        },
+        expected: {
+          real_name: "Ruan",
+          user_name: "ruan_AAA",
+          email: "ruan@AAA",
+        },
+      },
+      {
+        body: {
+          real_name: "Tales",
+          user_name: "Taleszito",
+          email: "tales@site.com",
+          password: "strongpassword123",
+        },
+        expected: {
+          real_name: "Tales",
+          user_name: "Taleszito",
+          email: "tales@site.com",
+        },
+      },
+      {
+        body: {
+          real_name: "Ana Maria",
+          user_name: "ana_maria123",
+          email: "ana@maria.com",
+          password: "password456",
+        },
+        expected: {
+          real_name: "Ana Maria",
+          user_name: "ana_maria123",
+          email: "ana@maria.com",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      const { body, expected } = test;
+      await createDatabaseUser(
+        body.real_name,
+        body.user_name,
+        body.email,
+        body.password
+      );
+      const url = getPath(body.email);
+
+      await supertest(app)
+        .get(url)
+        .expect((res) => {
+          const { body: resBody, status } = res;
+          try {
+            expect(resBody.real_name).toBe(expected.real_name);
+            expect(resBody.user_name).toBe(expected.user_name);
+            expect(resBody.email).toBe(expected.email);
+
+            expect(status).toBe(StatusCodes.OK);
+
+            expect(resBody).toHaveProperty("created_at");
+            expect(resBody).toHaveProperty("updated_at");
+
+            expect(resBody).not.toHaveProperty("password");
+            expect(resBody).not.toHaveProperty("salt");
+          } catch (err) {
+            throw new Error(`
+              Test failed with infos: \n${JSON.stringify(test, null, 2)} \n
+              Response body: \n${JSON.stringify(resBody, null, 2)}\n
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
   });
 });
