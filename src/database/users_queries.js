@@ -2,7 +2,7 @@ import { pool } from "./database_client.js";
 import { v4 as uuidv4, validate } from "uuid";
 import { hashPassword } from "../auth/auth.js";
 import { DatabaseUser } from "../models/users.js";
-import { getNowUTC } from "../../helpers/helpers.js";
+import { getNowUTC } from "../helpers/helpers.js";
 
 class ErrorAlreadyExists extends Error {
   /**
@@ -219,6 +219,26 @@ async function updateAllUsersInfosById(
   return dbuser.rows[0];
 }
 
+/**
+ *
+ * @param {String} table
+ * @returns {String}
+ */
+function getAllQuery(table) {
+  return `
+  SELECT * FROM ${table};
+  `;
+}
+
+/**
+ * @returns {Promise<Array<DatabaseUser>>}
+ */
+async function getAllDatabaseUsers() {
+  const query = getAllQuery("users");
+  const results = await pool.query(query);
+  return results.rows;
+}
+
 export {
   truncateUsersTable,
   createDatabaseUser,
@@ -228,4 +248,5 @@ export {
   getUserById,
   ErrorNotFound,
   updateAllUsersInfosById,
+  getAllDatabaseUsers,
 };
