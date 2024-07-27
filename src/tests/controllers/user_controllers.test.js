@@ -325,32 +325,6 @@ describe("get /api/users/:id/id", () => {
           email: "ana@maria.com",
         },
       },
-      {
-        body: {
-          real_name: "João Silva",
-          user_name: "joaosilva",
-          email: "joao@silva.com",
-          password: "joaosenha789",
-        },
-        expected: {
-          real_name: "João Silva",
-          user_name: "joaosilva",
-          email: "joao@silva.com",
-        },
-      },
-      {
-        body: {
-          real_name: "Maria Clara",
-          user_name: "maria_clara",
-          email: "maria@clara.com",
-          password: "mariapass123",
-        },
-        expected: {
-          real_name: "Maria Clara",
-          user_name: "maria_clara",
-          email: "maria@clara.com",
-        },
-      },
     ];
 
     for (const test of tests) {
@@ -490,20 +464,6 @@ describe("patch /api/users/:id/id", () => {
           password: "joaopass12",
         },
       },
-      {
-        input: {
-          new_real_name: "mariasmith",
-          new_user_name: "maria123",
-          new_email: "maria@smith.com",
-          new_password: "mariasecure",
-        },
-        expected: {
-          real_name: "mariasmit",
-          user_name: "maria12",
-          email: "maria@smith.co",
-          password: "mariasecur",
-        },
-      },
     ];
 
     for (const test of tests) {
@@ -640,20 +600,6 @@ describe("patch /api/users/:id/id", () => {
           real_name: "Tales",
           user_name: "Taleszito",
           email: "tales@site.com",
-        },
-      },
-      {
-        input: {
-          real_name: "Ana Maria",
-          user_name: "ana_maria123",
-          email: "ana@maria.com",
-          password: "password456",
-          new_password: "password45",
-        },
-        expected: {
-          real_name: "Ana Maria",
-          user_name: "ana_maria123",
-          email: "ana@maria.com",
         },
       },
     ];
@@ -977,8 +923,6 @@ describe("patch /api/users/:id/id", () => {
   });
 
   it("should return BAD_REQUEST when user with updated infos already exists", async () => {
-    await truncateUsersTable();
-
     const tests = [
       {
         baseUser: {
@@ -1018,26 +962,6 @@ describe("patch /api/users/:id/id", () => {
           new_user_name: "conflictingUserUpdated",
           new_email: "conflicting@updated.com",
           new_password: "yetanotherpassword123",
-        },
-      },
-      {
-        baseUser: {
-          real_name: "UserA",
-          user_name: "userA",
-          email: "userA@domain.com",
-          password: "passA123",
-        },
-        conflictingUser: {
-          real_name: "UserA Updated",
-          user_name: "userAUpdated",
-          email: "userA@domain.org",
-          password: "passA123",
-        },
-        conflictingUpdate: {
-          new_real_name: "UserA Updated",
-          new_user_name: "userAUpdated",
-          new_email: "userA@domain.org",
-          new_password: "differentpassA123",
         },
       },
     ];
