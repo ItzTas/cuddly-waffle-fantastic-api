@@ -1,4 +1,3 @@
-import { formatObject } from "../../../helpers/helpers.js";
 import { compareHashFromPassword } from "../../auth/auth.js";
 import {
   createDatabaseUser,
@@ -11,6 +10,7 @@ import {
   updateAllUsersInfosById,
 } from "../../database/users_queries.js";
 import { v4 as uuidv4 } from "uuid";
+import { formatObject } from "../../helpers/helpers.js";
 
 describe("Create database user", () => {
   beforeEach(async () => {
