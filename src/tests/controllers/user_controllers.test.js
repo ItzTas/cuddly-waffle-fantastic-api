@@ -1334,6 +1334,18 @@ describe("post /api/users/login", () => {
         email: "tails@emial",
         password: "a9shd89abns8",
       },
+      {
+        real_name: "alice",
+        user_name: "alicerocks",
+        email: "alice@example.com",
+        password: "securepassword123",
+      },
+      {
+        real_name: "bob",
+        user_name: "bobthebuilder",
+        email: "bob@example.com",
+        password: "builder123",
+      },
     ];
 
     for (const test of tests) {
@@ -1380,6 +1392,111 @@ describe("post /api/users/login", () => {
               failed with infos: \n${formatObject(test)}\n
               Response body: \n${formatObject(body)}\n 
               Decoded: \n${formatObject(decoded)}\n
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("error expected with missing paramethers", async () => {
+    const tests = [
+      {
+        name: "misssing email",
+        input: {
+          email: "",
+          password: "9sa0n0",
+        },
+      },
+      {
+        name: "misssing password",
+        input: {
+          email: "saodno0@sod",
+          password: "",
+        },
+      },
+    ];
+
+    for (const test of tests) {
+      await supertest(app)
+        .post(path)
+        .send(test.input)
+        .expect((res) => {
+          const { body, status } = res;
+          try {
+            expect(status).toBe(400);
+
+            expect(body).toHaveProperty(
+              "error",
+              "required paramethers missing email, password"
+            );
+          } catch (err) {
+            throw new Error(`
+              failed with infos: \n${formatObject(test)}\n
+              Response body: \n${formatObject(body)}\n 
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("expected error user not found", async () => {
+    const tests = ["yeeesss@sex", "tales@lindo"];
+
+    for (const test of tests) {
+      const bodyToSend = {
+        password: "sex is great for health!",
+        email: test,
+      };
+
+      await supertest(app)
+        .post(path)
+        .send(bodyToSend)
+        .expect((res) => {
+          const { body, status } = res;
+          try {
+            expect(status).toBe(404);
+
+            expect(body).toHaveProperty("error", "user not found");
+          } catch (err) {
+            throw new Error(`
+              failed with infos: \n${formatObject(test)}\n
+              Response body: \n${formatObject(body)}\n 
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+
+  it("expected error unauthorized", async () => {
+    const tests = [
+      {
+        real_name: "tales",
+        user_name: "talitos",
+        email: "tales@gmail",
+        password: "secure password",
+      },
+    ];
+
+    for (const test of tests) {
+      const { real_name, user_name, email, password } = test;
+      await createDatabaseUser(real_name, user_name, email, password);
+
+      await supertest(app)
+        .post(path)
+        .send({ email, password: password + "lol" })
+        .expect(async (res) => {
+          const { body, status } = res;
+          try {
+            expect(status).toBe(401);
+
+            expect(body).toHaveProperty("error", "unauthorized");
+          } catch (err) {
+            throw new Error(`
+              failed with infos: \n${formatObject(test)}\n
+              Response body: \n${formatObject(body)}\n 
               Error: \n${err}\n
               `);
           }
