@@ -14,14 +14,14 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { formatObject } from "../../helpers/helpers.js";
 
-describe("Create database user", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
+beforeEach(async () => {
+  await truncateUsersTable();
+});
+afterEach(async () => {
+  await truncateUsersTable();
+});
 
+describe("Create database user", () => {
   it("Assert equality with created users", async () => {
     const tests = [
       {
@@ -199,13 +199,6 @@ describe("Create database user", () => {
 });
 
 describe("Get user by id", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   it("get a user with a id", async () => {
     const tests = [
       {
@@ -315,13 +308,6 @@ describe("Get user by id", () => {
 });
 
 describe("Update all users infos by id", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   it("assert equality with updated users", async () => {
     const tests = [
       {
@@ -423,13 +409,6 @@ describe("Update all users infos by id", () => {
 });
 
 describe("get all database users", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   it("assures equality in informations", async () => {
     await truncateUsersTable();
 
@@ -484,13 +463,6 @@ describe("get all database users", () => {
 });
 
 describe("get users by email", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   it("ensures equallity in informations", async () => {
     const tests = [
       {
@@ -568,13 +540,6 @@ describe("get users by email", () => {
 });
 
 describe("update user password by id", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   it("assures return values match", async () => {
     const tests = [
       {
