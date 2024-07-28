@@ -6,6 +6,7 @@ import {
   handlerGetUserByEmail,
   handlerUpdateAllUserInfosById,
   handlerUpdateUserPasswordById,
+  handlerEmailLogin,
 } from "../controllers/users_controllers.js";
 
 const router = Router();
@@ -16,5 +17,6 @@ router.get("/api/users/:id/id", handlerGetUserById);
 router.get("/api/users/:email/email", handlerGetUserByEmail);
 router.patch("/api/users/:id/id", handlerUpdateAllUserInfosById);
 router.patch("/api/users/password/:id/id", handlerUpdateUserPasswordById);
+router.post("/api/users/login", handlerEmailLogin);
 
 export default router;

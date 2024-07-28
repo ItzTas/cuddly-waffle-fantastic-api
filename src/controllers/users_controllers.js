@@ -17,7 +17,7 @@ import {
 } from "../database/users_queries.js";
 import { databaseUserToUser } from "../models/users.js";
 import { validate } from "uuid";
-import { compareHashFromPassword } from "../auth/auth.js";
+import { compareHashFromPassword, signWebToken } from "../auth/auth.js";
 
 /**
  *
@@ -283,6 +283,61 @@ async function handlerUpdateUserPasswordById(req, res) {
   return res.status(200).json(databaseUserToUser(updatedUser));
 }
 
+/**
+ *
+ * @param {Request} req
+ * @param {Response} res
+ */
+async function handlerEmailLogin(req, res) {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({
+      error: "required paramethers missing email, password",
+    });
+  }
+
+  let dbuser;
+  try {
+    dbuser = await getUserByEmail(email);
+  } catch (err) {
+    if (err instanceof ErrorNotFound) {
+      return res.status(404).json({
+        error: "user not found",
+      });
+    }
+    return res.status(500).json({
+      error: "could not get user",
+      error_infos: err,
+    });
+  }
+
+  let authenticated;
+  try {
+    authenticated = await compareHashFromPassword(
+      password,
+      dbuser.salt,
+      dbuser.password
+    );
+  } catch (err) {
+    return res.status(500).json({
+      error: "error authenticating user",
+      error_infos: err,
+    });
+  }
+
+  if (!authenticated) {
+    return res.status(401).json({
+      error: "unauthorized",
+    });
+  }
+
+  const token = signWebToken({ id: dbuser.id, user_name: dbuser.user_name });
+
+  const user = databaseUserToUser(dbuser);
+  const payload = { user, token: token };
+  return res.status(200).json(payload);
+}
+
 export {
   handlerCreateUser,
   handlerGetUserById,
@@ -290,4 +345,5 @@ export {
   handlerGetAllUsers,
   handlerGetUserByEmail,
   handlerUpdateUserPasswordById,
+  handlerEmailLogin,
 };
