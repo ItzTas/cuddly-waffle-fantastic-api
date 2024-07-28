@@ -3,7 +3,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { defaultTokenExpiration } from "../main.js";
 import { v4 as uuidv4 } from "uuid";
-import { getNowUTC } from "../helpers/helpers.js";
 import moment from "moment";
 
 if (!process.env["JWT_SECRET"]) {
