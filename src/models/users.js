@@ -20,6 +20,7 @@ function User(id, real_name, user_name, email, created_at, updated_at) {
 
 /**
  *
+ * @readonly database user must NOT be sent throught a response, it must first be transformed to user using the databaseUserToUser function!
  * @param {String} id
  * @param {String} real_name
  * @param {String} user_name
