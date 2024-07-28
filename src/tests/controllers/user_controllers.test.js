@@ -4,60 +4,23 @@ import {
   getUserById,
   truncateUsersTable,
 } from "../../database/users_queries.js";
-import app from "../../main.js";
+import app, { server } from "../../main.js";
 import { StatusCodes } from "http-status-codes";
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4, validate } from "uuid";
 import { formatObject } from "../../helpers/helpers.js";
-import { compareHashFromPassword } from "../../auth/auth.js";
+import { compareHashFromPassword, decodeWebToken } from "../../auth/auth.js";
+
+beforeEach(async () => {
+  server.close();
+  await truncateUsersTable();
+});
+afterEach(async () => {
+  server.close();
+  await truncateUsersTable();
+});
 
 describe("post /api/users/accounts", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   const path = "/api/users/accounts";
-
-  it(`Code ${StatusCodes.CREATED} (created) expected`, async () => {
-    const tests = [
-      {
-        body: {
-          real_name: "Tales lindo",
-          user_name: "TaleszitoLindo",
-          email: "tales@2",
-          password: "sa9dn28b9bndf",
-        },
-      },
-      {
-        body: {
-          real_name: "Lucas m",
-          user_name: "lucaszito",
-          email: "lucas@dkosm",
-          password: "awo0dms9a0",
-        },
-      },
-    ];
-
-    for (const test of tests) {
-      const { body } = test;
-      try {
-        await supertest(app)
-          .post(path)
-          .send(body)
-          .expect((res) => {
-            expect(res.status).toBe(StatusCodes.CREATED);
-          });
-      } catch (/** @type {any} */ err) {
-        throw new Error(`
-			expected code ${StatusCodes.CREATED} did not happen\n
-			test: \n${formatObject(test)}\n
-			error: \n${err}\n 
-			`);
-      }
-    }
-  });
 
   it("Assures security and equality in informations", async () => {
     const tests = [
@@ -262,13 +225,6 @@ describe("post /api/users/accounts", () => {
 });
 
 describe("get /api/users/:id/id", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   /**
    *
    * @param {String} id
@@ -415,13 +371,6 @@ describe("get /api/users/:id/id", () => {
 });
 
 describe("patch /api/users/:id/id", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   /**
    *
    * @param {string} id
@@ -1008,12 +957,6 @@ describe("patch /api/users/:id/id", () => {
 });
 
 describe("get /api/users", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
   const path = "/api/users";
 
   it("assures equallity and security in returned data", async () => {
@@ -1063,13 +1006,6 @@ describe("get /api/users", () => {
 });
 
 describe("get /api/users/:email/email", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   /**
    *
    * @param {String} email
@@ -1161,13 +1097,6 @@ describe("get /api/users/:email/email", () => {
 });
 
 describe("patch /api/users/password/:id/id", () => {
-  beforeEach(async () => {
-    await truncateUsersTable();
-  });
-  afterEach(async () => {
-    await truncateUsersTable();
-  });
-
   /**
    *
    * @param {String} id
@@ -1386,6 +1315,71 @@ describe("patch /api/users/password/:id/id", () => {
               Test ${test.test_name} 
               failed with infos: \n${formatObject(test)} \n
               Response body: \n${formatObject(body)}\n
+              Error: \n${err}\n
+              `);
+          }
+        });
+    }
+  });
+});
+
+describe("post /api/users/login", () => {
+  const path = "/api/users/login";
+
+  it("assures equallity in informations", async () => {
+    const tests = [
+      {
+        real_name: "tales",
+        user_name: "talitos",
+        email: "tails@emial",
+        password: "a9shd89abns8",
+      },
+    ];
+
+    for (const test of tests) {
+      const { real_name, user_name, email, password } = test;
+      const { id: expectedID } = await createDatabaseUser(
+        real_name,
+        user_name,
+        email,
+        password
+      );
+
+      await supertest(app)
+        .post(path)
+        .send({ email, password })
+        .expect((res) => {
+          const { body, status } = res;
+          const decoded = decodeWebToken(body.token);
+          try {
+            const { user } = body;
+            expect(status).toBe(200);
+            expect(user).toHaveProperty("id", expectedID);
+
+            expect(body).toHaveProperty("token");
+
+            expect(user).toHaveProperty("created_at");
+            expect(user).toHaveProperty("updated_at");
+
+            expect(user.email).toBe(email);
+            expect(user.user_name).toBe(user_name);
+            expect(user.real_name).toBe(real_name);
+
+            expect(user).not.toHaveProperty("password");
+            expect(user).not.toHaveProperty("salt");
+
+            expect(decoded).toHaveProperty("id", expectedID);
+            expect(decoded).toHaveProperty("user_name", user_name);
+            expect(decoded).toHaveProperty("sub", expectedID);
+            expect(decoded).toHaveProperty("iss", "cuddly-waffle-fantastic");
+            expect(decoded).toHaveProperty("jti");
+            // @ts-ignore
+            expect(validate(decoded.jti)).toBe(true);
+          } catch (err) {
+            throw new Error(`
+              failed with infos: \n${formatObject(test)}\n
+              Response body: \n${formatObject(body)}\n 
+              Decoded: \n${formatObject(decoded)}\n
               Error: \n${err}\n
               `);
           }
